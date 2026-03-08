@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ETF Strategy Dashboard</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0f172a">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" href="icon.svg" type="image/svg+xml">
+</head>
+<body>
+    <div class="app-container">
+        <header class="glass-header">
+            <div>
+                <h1>Kaufsignal Strategie</h1>
+                <p class="subtitle">FTSE All World Tracker</p>
+            </div>
+            <div class="status-indicator">
+                <span id="last-update" class="time">Laden...</span>
+                <span class="pulse-dot"></span>
+            </div>
+        </header>
+
+        <main class="dashboard">
+            <div class="global-status" id="global-status">
+                <div class="status-icon" id="global-icon">⏳</div>
+                <h2 id="global-text">Signal wird geprüft...</h2>
+                <p class="status-subtext">Warten auf Marktdaten</p>
+            </div>
+
+            <div class="cards-grid">
+                <!-- VIX Card -->
+                <div class="glass-card" id="card-vix">
+                    <div class="card-header">
+                        <span class="card-title">Volatilität (VIX)</span>
+                        <span class="status-badge" id="badge-vix">Ausstehend</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="value-block">
+                            <span class="label">Ist-Wert</span>
+                            <span class="value" id="val-vix">--</span>
+                        </div>
+                        <div class="value-block target">
+                            <span class="label">Soll-Wert</span>
+                            <span class="value">> 30</span>
+                        </div>
+                    </div>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" id="progress-vix"></div>
+                    </div>
+                </div>
+
+                <!-- Trend Card -->
+                <div class="glass-card" id="card-trend">
+                    <div class="card-header">
+                        <span class="card-title">Trend (FTSE)</span>
+                        <span class="status-badge" id="badge-trend">Ausstehend</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="value-block">
+                            <span class="label">Kurs Ist</span>
+                            <span class="value" id="val-price">--</span>
+                        </div>
+                        <div class="value-block target">
+                            <span class="label">SMA 200</span>
+                            <span class="value" id="val-sma">--</span>
+                        </div>
+                    </div>
+                    <p class="condition-text">Kurs ≤ SMA 200</p>
+                </div>
+
+                <!-- Sentiment Card -->
+                <div class="glass-card" id="card-sentiment">
+                    <div class="card-header">
+                        <span class="card-title">Fear & Greed</span>
+                        <span class="status-badge" id="badge-sentiment">Ausstehend</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="value-block">
+                            <span class="label">Ist-Wert</span>
+                            <span class="value" id="val-fng">--</span>
+                        </div>
+                        <div class="value-block target">
+                            <span class="label">Soll-Wert</span>
+                            <span class="value">< 30</span>
+                        </div>
+                    </div>
+                    <div class="progress-bar-container flipped">
+                        <div class="progress-bar" id="progress-fng"></div>
+                    </div>
+                </div>
+            </div>
+
+            <button id="enable-notifications" class="btn-primary" style="display: none;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+                Push-Benachrichtigungen aktivieren
+            </button>
+        </main>
+    </div>
+
+    <!-- PWA Install Prompt -->
+    <div id="install-prompt" class="install-card" style="display: none;">
+        <div class="install-info">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14.5v-5h2v5h-2zm0-7v-2h2v2h-2z"/></svg>
+            <div>
+                <h3>App installieren</h3>
+                <p>Füge das Dashboard zu deinem Homescreen hinzu</p>
+            </div>
+        </div>
+        <button id="btn-install" class="btn-secondary">Installieren</button>
+        <button id="btn-close-install" class="btn-ghost">Später</button>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

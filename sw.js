@@ -1,11 +1,12 @@
-const CACHE_NAME = 'etf-signal-cache-v2';
+const CACHE_NAME = 'etf-signal-cache-v3';
+const basePath = '/etf-signal-dashboard/';
 const urlsToCache = [
-  './',
-  './index.html',
-  './style.css',
-  './app.js',
-  './manifest.json',
-  './icon.svg',
+  basePath,
+  basePath + 'index.html',
+  basePath + 'style.css',
+  basePath + 'app.js',
+  basePath + 'manifest_app.json',
+  basePath + 'icon.svg',
   'https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap'
 ];
 

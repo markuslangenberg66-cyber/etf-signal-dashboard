@@ -1,4 +1,4 @@
-const CACHE_NAME = 'etf-signal-cache-v1';
+const CACHE_NAME = 'etf-signal-cache-v2';
 const urlsToCache = [
   './',
   './index.html',

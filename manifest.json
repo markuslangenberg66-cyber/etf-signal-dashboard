@@ -2,7 +2,7 @@
   "name": "ETF Einstiegssignal",
   "short_name": "ETF Signal",
   "description": "Dashboard für FTSE All World Einstiegsstrategie",
-  "start_url": "/index.html",
+  "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#0f172a",
   "theme_color": "#38bdf8",

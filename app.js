@@ -1,4 +1,4 @@
-const PROXY = 'https://corsproxy.io/?';
+const PROXY = 'https://api.allorigins.win/get?url=';
 
 // Constants
 const VIX_THRESHOLD = 30;
@@ -41,12 +41,14 @@ const el = {
 // Utils
 const formatNumber = (num, decimals = 2) => num ? Number(num).toLocaleString('de-DE', { minimumFractionDigits: decimals, maximumFractionDigits: decimals }) : '--';
 
-async function fetchWithProxy(url, asJson = true, extraHeaders = {}) {
-    const res = await fetch(PROXY + encodeURIComponent(url), {
-        headers: extraHeaders
-    });
+async function fetchWithProxy(url, asJson = true) {
+    const res = await fetch(PROXY + encodeURIComponent(url));
     if (!res.ok) throw new Error(`API Error ${res.status}`);
-    return asJson ? await res.json() : await res.text();
+    
+    const wrapper = await res.json();
+    if (!wrapper.contents) throw new Error('No contents from proxy');
+    
+    return asJson ? JSON.parse(wrapper.contents) : wrapper.contents;
 }
 
 async function getVix() {
@@ -88,9 +90,7 @@ async function getFtse() {
 async function getFng() {
     try {
         // CNN API needs some headers bypassed via proxy maybe, let's just pass basic ones
-        const response = await fetchWithProxy(URL_FNG, true, {
-             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
-        });
+        const response = await fetchWithProxy(URL_FNG, true);
         return response.fear_and_greed.score;
     } catch (e) {
         console.error("FnG fetching failed, might need alternate source", e);
@@ -166,15 +166,18 @@ function updateUI() {
 
     // Global
     const allOk = state.vix.ok && state.ftse.ok && state.fng.ok;
+    const subtextEl = el.globalStatus.querySelector('.status-subtext');
     
     if (allOk) {
         el.globalIcon.innerText = "🚀";
         el.globalText.innerText = "Kaufsignal aktiv!";
+        if(subtextEl) subtextEl.innerText = "Alle Bedingungen erfüllt.";
         el.globalStatus.classList.add('signal-active');
         triggerNotification(); 
     } else {
         el.globalIcon.innerText = "⏳";
         el.globalText.innerText = "Kein Signal";
+        if(subtextEl) subtextEl.innerText = "Bedingungen (noch) nicht erfüllt.";
         el.globalStatus.classList.remove('signal-active');
     }
 

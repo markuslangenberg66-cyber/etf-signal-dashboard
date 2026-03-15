@@ -1,4 +1,4 @@
-const CACHE_NAME = 'etf-signal-cache-v3';
+const CACHE_NAME = 'etf-signal-cache-v4';
 const basePath = '/etf-signal-dashboard/';
 const urlsToCache = [
   basePath,
@@ -11,6 +11,7 @@ const urlsToCache = [
 ];
 
 self.addEventListener('install', event => {
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
@@ -19,9 +20,24 @@ self.addEventListener('install', event => {
   );
 });
 
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    caches.keys().then(cacheNames => {
+      return Promise.all(
+        cacheNames.map(cacheName => {
+          if (cacheName !== CACHE_NAME) {
+            return caches.delete(cacheName);
+          }
+        })
+      );
+    })
+  );
+  self.clients.claim();
+});
+
 self.addEventListener('fetch', event => {
   // Only intercept GET requests, skip API calls to proxy
-  if (event.request.method !== 'GET' || event.request.url.includes('corsproxy.io')) {
+  if (event.request.method !== 'GET' || event.request.url.includes('corsproxy.io') || event.request.url.includes('api.allorigins.win')) {
     return;
   }
   
@@ -45,18 +61,20 @@ self.addEventListener('periodicsync', (event) => {
 
 async function checkSignalsInBackground() {
     // Re-implementation of fetch logic for background sync
-    const PROXY = 'https://corsproxy.io/?';
+    const PROXY = 'https://api.allorigins.win/get?url=';
     const VIX_THRESHOLD = 30;
     const FNG_THRESHOLD = 30;
     
     // We just do a quick fetch
     try {
         const vixRes = await fetch(PROXY + encodeURIComponent(`https://query1.finance.yahoo.com/v8/finance/chart/^VIX?range=1d&interval=1d`));
-        const vixData = await vixRes.json();
+        const vixWrapper = await vixRes.json();
+        const vixData = JSON.parse(vixWrapper.contents);
         const vix = vixData.chart.result[0].meta.regularMarketPrice;
 
         const ftseRes = await fetch(PROXY + encodeURIComponent(`https://query1.finance.yahoo.com/v8/finance/chart/VWCE.DE?range=1y&interval=1d`));
-        const ftseData = await ftseRes.json();
+        const ftseWrapper = await ftseRes.json();
+        const ftseData = JSON.parse(ftseWrapper.contents);
         const ftseResult = ftseData.chart.result[0];
         const validPrices = ftseResult.indicators.quote[0].close.filter(p => p !== null && p !== undefined);
         const sma200 = validPrices.slice(-200).reduce((a, b) => a + b, 0) / 200;

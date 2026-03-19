@@ -37,10 +37,13 @@ const fmt = (n, d = 2) => n != null
     ? Number(n).toLocaleString('de-DE', { minimumFractionDigits: d, maximumFractionDigits: d })
     : '--';
 
-// ── data.json laden (cache-busting per Timestamp) ───────────
+// ── data.json laden (immer frisch, kein Cache) ──────────────
 async function loadData() {
-    const url = './data.json?t=' + Math.floor(Date.now() / (60 * 60 * 1000)); // ändert sich stündlich
-    const res = await fetch(url);
+    const url = './data.json?t=' + Date.now(); // einzigartiger Timestamp bei jedem Aufruf
+    const res = await fetch(url, {
+        cache: 'no-store',  // Browser-Cache komplett umgehen
+        headers: { 'Cache-Control': 'no-cache' }
+    });
     if (!res.ok) throw new Error(`data.json Fehler: ${res.status}`);
     return await res.json();
 }

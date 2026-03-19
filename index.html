@@ -108,18 +108,24 @@
         </main>
     </div>
 
-    <!-- Modal: Anleitung für Browser ohne native Install-Unterstützung -->
+    <!-- Modal: Installations-Anleitung -->
     <div id="manual-install-modal" class="modal-overlay" style="display:none;">
         <div class="modal-box">
             <h3>📲 App installieren</h3>
-            <p>Tippe im Browser-Menü auf:</p>
+
+            <!-- Nur sichtbar wenn Chrome beforeinstallprompt verfügbar ist -->
+            <button id="btn-native-install" class="btn-primary" style="display:none; width:100%; margin-bottom:16px; justify-content:center;">
+                ⚡ Jetzt direkt installieren
+            </button>
+
+            <p>Oder manuell über das Browser-Menü:</p>
             <ol>
                 <li>☰ <strong>Menü</strong> (oben/unten im Browser)</li>
                 <li>➕ <strong>„Seite hinzufügen zu..."</strong></li>
                 <li>🏠 <strong>„Startbildschirm"</strong></li>
                 <li>✅ <strong>„Hinzufügen"</strong> bestätigen</li>
             </ol>
-            <button id="btn-close-modal" class="btn-primary" style="margin-top:12px;">Verstanden ✓</button>
+            <button id="btn-close-modal" class="btn-primary" style="margin-top:16px;">Schließen</button>
         </div>
     </div>
 

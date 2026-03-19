@@ -157,25 +157,38 @@ function init() {
 
     let deferredPrompt = null;
 
-    // Chrome: nativer Install-Dialog verfügbar
     window.addEventListener('beforeinstallprompt', e => {
         e.preventDefault();
         deferredPrompt = e;
     });
 
-    // Permanenter Button: Chrome → nativer Dialog, andere → Modal mit Anleitung
-    document.getElementById('btn-install-main').addEventListener('click', async () => {
-        if (deferredPrompt) {
-            deferredPrompt.prompt();
-            const { outcome } = await deferredPrompt.userChoice;
-            if (outcome === 'accepted') {
-                document.getElementById('btn-install-main').style.display = 'none';
-            }
-            deferredPrompt = null;
-        } else {
-            document.getElementById('manual-install-modal').style.display = 'flex';
+    // Installations-Button: öffnet IMMER das Modal
+    document.getElementById('btn-install-main').addEventListener('click', () => {
+        const modal = document.getElementById('manual-install-modal');
+        const nativeBtn = document.getElementById('btn-native-install');
+
+        // Zeige/verstecke nativen Chrome-Button je nach Verfügbarkeit
+        if (nativeBtn) {
+            nativeBtn.style.display = deferredPrompt ? 'flex' : 'none';
         }
+        modal.style.display = 'flex';
     });
+
+    // Nativer Chrome Install-Button im Modal
+    const nativeBtn = document.getElementById('btn-native-install');
+    if (nativeBtn) {
+        nativeBtn.addEventListener('click', async () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                deferredPrompt = null;
+                if (outcome === 'accepted') {
+                    document.getElementById('manual-install-modal').style.display = 'none';
+                    document.getElementById('btn-install-main').style.display = 'none';
+                }
+            }
+        });
+    }
 
     // Modal schließen
     document.getElementById('btn-close-modal').addEventListener('click', () => {
@@ -187,7 +200,6 @@ function init() {
         }
     });
 
-    // Chrome-Banner (btn-install)
     document.getElementById('btn-install').addEventListener('click', async () => {
         if (deferredPrompt) {
             deferredPrompt.prompt();
@@ -200,7 +212,7 @@ function init() {
         document.getElementById('install-prompt').style.display = 'none';
     });
 
-    // App bereits installiert (standalone-Modus)? Button ausblenden
+    // App bereits als PWA installiert? Button ausblenden
     if (window.matchMedia('(display-mode: standalone)').matches) {
         document.getElementById('btn-install-main').style.display = 'none';
     }

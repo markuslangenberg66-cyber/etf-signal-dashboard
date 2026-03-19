@@ -1,4 +1,4 @@
-const CACHE_NAME = 'etf-signal-cache-v4';
+const CACHE_NAME = 'etf-signal-cache-v5';
 const basePath = '/etf-signal-dashboard/';
 const urlsToCache = [
   basePath,
@@ -35,11 +35,12 @@ self.addEventListener('activate', event => {
   self.clients.claim();
 });
 
+const API_HOSTS = ['cdn.cboe.com', 'stooq.com', 'production.dataviz.cnn.io', 'api.alternative.me', 'api.allorigins.win', 'corsproxy.io', 'fonts.googleapis.com', 'fonts.gstatic.com'];
+
 self.addEventListener('fetch', event => {
-  // Only intercept GET requests, skip API calls to proxy
-  if (event.request.method !== 'GET' || event.request.url.includes('corsproxy.io') || event.request.url.includes('api.allorigins.win')) {
-    return;
-  }
+  if (event.request.method !== 'GET') return;
+  const url = new URL(event.request.url);
+  if (API_HOSTS.some(h => url.hostname.includes(h))) return; // never cache API calls
   
   event.respondWith(
     caches.match(event.request)

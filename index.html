@@ -115,6 +115,25 @@
         <button id="btn-close-install" class="btn-ghost">Später</button>
     </div>
 
-    <script src="app.js"></script>
+    <!-- Cache-Buster: löscht alle alten Service Worker + Caches beim Laden -->
+    <script>
+        (async function() {
+            if ('serviceWorker' in navigator) {
+                const regs = await navigator.serviceWorker.getRegistrations();
+                for (const reg of regs) {
+                    await reg.unregister();
+                    console.log('[BOOT] SW deregistriert:', reg.scope);
+                }
+            }
+            if ('caches' in window) {
+                const keys = await caches.keys();
+                for (const key of keys) {
+                    await caches.delete(key);
+                    console.log('[BOOT] Cache gelöscht:', key);
+                }
+            }
+        })();
+    </script>
+    <script src="app.js?v=7"></script>
 </body>
 </html>

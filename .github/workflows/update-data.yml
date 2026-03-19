@@ -54,19 +54,31 @@ jobs:
           except Exception as e:
               print(f"FTSE error: {e}")
 
-          # --- Fear & Greed via CNN ---
+          # --- Fear & Greed (CNN primär, alternative.me als Fallback) ---
           try:
               url = "https://production.dataviz.cnn.io/index/fearandgreed/graphdata"
               req = urllib.request.Request(url, headers={
-                  "User-Agent": "Mozilla/5.0",
-                  "Accept": "application/json"
+                  "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+                  "Accept": "application/json, text/plain, */*",
+                  "Accept-Language": "en-US,en;q=0.9",
+                  "Referer": "https://edition.cnn.com/markets/fear-and-greed",
+                  "Origin": "https://edition.cnn.com",
               })
               with urllib.request.urlopen(req, timeout=10) as r:
                   data = json.loads(r.read())
               result["fng"] = float(data["fear_and_greed"]["score"])
-              print(f"F&G: {result['fng']}")
+              print(f"F&G (CNN): {result['fng']}")
           except Exception as e:
-              print(f"F&G error: {e}")
+              print(f"F&G CNN error: {e} — versuche alternative.me Fallback")
+              try:
+                  url = "https://api.alternative.me/fng/?limit=1&format=json"
+                  req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+                  with urllib.request.urlopen(req, timeout=10) as r:
+                      data = json.loads(r.read())
+                  result["fng"] = float(data["data"][0]["value"])
+                  print(f"F&G (alternative.me): {result['fng']}")
+              except Exception as e2:
+                  print(f"F&G fallback error: {e2}")
 
           with open("data.json", "w") as f:
               json.dump(result, f, indent=2)

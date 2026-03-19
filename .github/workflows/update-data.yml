@@ -1,0 +1,82 @@
+name: Update Market Data
+
+on:
+  schedule:
+    - cron: '0 * * * *'   # every hour
+  workflow_dispatch:        # manual trigger button in GitHub UI
+
+jobs:
+  fetch-data:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Fetch market data and write data.json
+        run: |
+          python3 - <<'EOF'
+          import urllib.request, json, csv, io
+
+          result = {"timestamp": "", "vix": None, "ftse_price": None, "sma200": None, "fng": None}
+
+          from datetime import datetime, timezone
+          result["timestamp"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+          # --- VIX via CBOE ---
+          try:
+              url = "https://cdn.cboe.com/api/global/delayed_quotes/charts/historical/_VIX.json"
+              req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+              with urllib.request.urlopen(req, timeout=10) as r:
+                  data = json.loads(r.read())
+              entries = data["data"]
+              result["vix"] = float(entries[-1]["close"])
+              print(f"VIX: {result['vix']}")
+          except Exception as e:
+              print(f"VIX error: {e}")
+
+          # --- FTSE / VWCE via Stooq ---
+          try:
+              url = "https://stooq.com/q/d/l/?s=vwce.de&i=d"
+              req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+              with urllib.request.urlopen(req, timeout=10) as r:
+                  raw = r.read().decode("utf-8")
+              reader = csv.reader(io.StringIO(raw))
+              next(reader)  # skip header
+              rows = [row for row in reader if row and len(row) >= 5]
+              closes = [float(row[4]) for row in rows if row[4] not in ("", "null")]
+              result["ftse_price"] = closes[-1]
+              last200 = closes[-200:]
+              result["sma200"] = round(sum(last200) / len(last200), 4)
+              print(f"FTSE: {result['ftse_price']}  SMA200: {result['sma200']}")
+          except Exception as e:
+              print(f"FTSE error: {e}")
+
+          # --- Fear & Greed via CNN ---
+          try:
+              url = "https://production.dataviz.cnn.io/index/fearandgreed/graphdata"
+              req = urllib.request.Request(url, headers={
+                  "User-Agent": "Mozilla/5.0",
+                  "Accept": "application/json"
+              })
+              with urllib.request.urlopen(req, timeout=10) as r:
+                  data = json.loads(r.read())
+              result["fng"] = float(data["fear_and_greed"]["score"])
+              print(f"F&G: {result['fng']}")
+          except Exception as e:
+              print(f"F&G error: {e}")
+
+          with open("data.json", "w") as f:
+              json.dump(result, f, indent=2)
+          print("data.json written:", json.dumps(result))
+          EOF
+
+      - name: Commit and push data.json
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data.json
+          git diff --cached --quiet || git commit -m "chore: update market data [skip ci]"
+          git push

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'etf-signal-cache-v5';
+const CACHE_NAME = 'etf-signal-cache-v6';
 const basePath = '/etf-signal-dashboard/';
 const urlsToCache = [
   basePath,
@@ -40,7 +40,8 @@ const API_HOSTS = ['cdn.cboe.com', 'stooq.com', 'production.dataviz.cnn.io', 'ap
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
   const url = new URL(event.request.url);
-  if (API_HOSTS.some(h => url.hostname.includes(h))) return; // never cache API calls
+  // Never cache API hosts OR data.json (must always be fresh)
+  if (API_HOSTS.some(h => url.hostname.includes(h)) || url.pathname.endsWith('data.json')) return;
   
   event.respondWith(
     caches.match(event.request)

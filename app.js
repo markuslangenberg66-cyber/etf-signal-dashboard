@@ -1,12 +1,19 @@
-const PROXY = 'https://api.allorigins.win/get?url=';
+// --- PROXY STRATEGY ---
+// We try multiple proxies in sequence for Yahoo Finance (which blocks direct browser requests).
+// CNN Fear & Greed is fetched directly because it supports CORS.
+
+const PROXIES = [
+    (url) => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
+    (url) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+    (url) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+];
 
 // Constants
 const VIX_THRESHOLD = 30;
 const FNG_THRESHOLD = 30;
 const SYMBOL_FTSE = 'VWCE.DE';
-const URL_VIX = `https://query1.finance.yahoo.com/v8/finance/chart/^VIX?range=1d&interval=1d`;
+const URL_VIX = `https://query1.finance.yahoo.com/v8/finance/chart/%5EVIX?range=1d&interval=1d`;
 const URL_FTSE = `https://query1.finance.yahoo.com/v8/finance/chart/${SYMBOL_FTSE}?range=1y&interval=1d`;
-const URL_FNG = `https://production.dataviz.cnn.io/index/fearandgreed/graphdata`;
 
 // State
 let state = {
@@ -41,69 +48,94 @@ const el = {
 // Utils
 const formatNumber = (num, decimals = 2) => num ? Number(num).toLocaleString('de-DE', { minimumFractionDigits: decimals, maximumFractionDigits: decimals }) : '--';
 
-async function fetchWithProxy(url, asJson = true) {
-    const res = await fetch(PROXY + encodeURIComponent(url));
-    if (!res.ok) throw new Error(`API Error ${res.status}`);
-    
-    const wrapper = await res.json();
-    if (!wrapper.contents) throw new Error('No contents from proxy');
-    
-    return asJson ? JSON.parse(wrapper.contents) : wrapper.contents;
+// Try to parse the response from a proxy (some wrap in {contents:...}, others return raw JSON)
+async function tryParseProxy(res) {
+    const text = await res.text();
+    // allorigins wraps with {contents: "..."}
+    try {
+        const wrapper = JSON.parse(text);
+        if (wrapper.contents) return JSON.parse(wrapper.contents);
+        if (wrapper.chart || wrapper.optionChain) return wrapper; // direct JSON
+        return wrapper;
+    } catch(e) {
+        return JSON.parse(text);
+    }
+}
+
+// Fetch a Yahoo Finance URL through multiple proxies in sequence until one works
+async function yahooFetch(url) {
+    for (const proxyFn of PROXIES) {
+        const proxyUrl = proxyFn(url);
+        try {
+            const res = await fetch(proxyUrl, { signal: AbortSignal.timeout(8000) });
+            if (!res.ok) { console.warn(`Proxy returned ${res.status} for ${proxyUrl}`); continue; }
+            const data = await tryParseProxy(res);
+            if (data?.chart?.result?.[0]) return data; // valid response
+            console.warn('Proxy returned unexpected data structure, trying next.', data);
+        } catch(e) {
+            console.warn(`Proxy failed: ${proxyUrl}`, e.message);
+        }
+    }
+    return null; // all proxies failed
 }
 
 async function getVix() {
     try {
-        const data = await fetchWithProxy(URL_VIX);
-        const results = data.chart.result[0];
-        const price = results.meta.regularMarketPrice;
-        return price;
+        const data = await yahooFetch(URL_VIX);
+        if (!data) throw new Error('All proxies failed for VIX');
+        return data.chart.result[0].meta.regularMarketPrice;
     } catch (e) {
-        console.error("VIX fetch logic issue", e);
+        console.error("VIX fetch failed:", e.message);
         return null;
     }
 }
 
 async function getFtse() {
     try {
-        const data = await fetchWithProxy(URL_FTSE);
+        const data = await yahooFetch(URL_FTSE);
+        if (!data) throw new Error('All proxies failed for FTSE');
         const result = data.chart.result[0];
         const closePrices = result.indicators.quote[0].close;
         const currentPrice = result.meta.regularMarketPrice;
 
-        // Calculate SMA 200
         const validPrices = closePrices.filter(p => p !== null && p !== undefined);
         let sma200 = null;
         if (validPrices.length >= 200) {
-            const last200 = validPrices.slice(-200);
-            sma200 = last200.reduce((a, b) => a + b, 0) / 200;
+            sma200 = validPrices.slice(-200).reduce((a, b) => a + b, 0) / 200;
         } else {
-            console.warn("Not enough data for SMA200, using all valid prices");
             sma200 = validPrices.reduce((a, b) => a + b, 0) / validPrices.length;
         }
         return { price: currentPrice, sma: sma200 };
     } catch (e) {
-        console.error("FTSE fetch error", e);
+        console.error("FTSE fetch failed:", e.message);
         return null;
     }
 }
 
 async function getFng() {
+    // CNN supports CORS – fetch directly, no proxy needed
     try {
-        // CNN API needs some headers bypassed via proxy maybe, let's just pass basic ones
-        const response = await fetchWithProxy(URL_FNG, true);
-        return response.fear_and_greed.score;
-    } catch (e) {
-        console.error("FnG fetching failed, might need alternate source", e);
-        // Fallback to Alternative.me if CNN Fails (Crypto instead of Stock, but often correlated. Best effort fallback)
-        try {
-            const fallback = await fetch('https://api.alternative.me/fng/?limit=1');
-            const fbData = await fallback.json();
-            return Number(fbData.data[0].value);
-        } catch (e2) {
-            return null;
+        const res = await fetch('https://production.dataviz.cnn.io/index/fearandgreed/graphdata', {
+            signal: AbortSignal.timeout(8000)
+        });
+        if (res.ok) {
+            const data = await res.json();
+            return data.fear_and_greed.score;
         }
+    } catch (e) {
+        console.warn('CNN F&G direct fetch failed, trying alternative.me fallback:', e.message);
+    }
+    // Fallback: alternative.me (crypto index, often correlated)
+    try {
+        const res = await fetch('https://api.alternative.me/fng/?limit=1', { signal: AbortSignal.timeout(8000) });
+        const data = await res.json();
+        return Number(data.data[0].value);
+    } catch (e) {
+        console.error('All F&G sources failed:', e.message);
+        return null;
     }
 }
+
 
 function checkNotificationPermission() {
     if ("Notification" in window) {

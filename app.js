@@ -155,12 +155,39 @@ async function refreshData() {
 function init() {
     checkNotificationPermission();
 
-    let deferredPrompt;
+    let deferredPrompt = null;
+
+    // Chrome: nativer Install-Dialog verfügbar
     window.addEventListener('beforeinstallprompt', e => {
         e.preventDefault();
         deferredPrompt = e;
-        document.getElementById('install-prompt').style.display = 'flex';
     });
+
+    // Permanenter Button: Chrome → nativer Dialog, andere → Modal mit Anleitung
+    document.getElementById('btn-install-main').addEventListener('click', async () => {
+        if (deferredPrompt) {
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            if (outcome === 'accepted') {
+                document.getElementById('btn-install-main').style.display = 'none';
+            }
+            deferredPrompt = null;
+        } else {
+            document.getElementById('manual-install-modal').style.display = 'flex';
+        }
+    });
+
+    // Modal schließen
+    document.getElementById('btn-close-modal').addEventListener('click', () => {
+        document.getElementById('manual-install-modal').style.display = 'none';
+    });
+    document.getElementById('manual-install-modal').addEventListener('click', e => {
+        if (e.target.id === 'manual-install-modal') {
+            document.getElementById('manual-install-modal').style.display = 'none';
+        }
+    });
+
+    // Chrome-Banner (btn-install)
     document.getElementById('btn-install').addEventListener('click', async () => {
         if (deferredPrompt) {
             deferredPrompt.prompt();
@@ -173,8 +200,13 @@ function init() {
         document.getElementById('install-prompt').style.display = 'none';
     });
 
+    // App bereits installiert (standalone-Modus)? Button ausblenden
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+        document.getElementById('btn-install-main').style.display = 'none';
+    }
+
     refreshData();
-    setInterval(refreshData, 60 * 60 * 1000); // stündlich UI neu laden
+    setInterval(refreshData, 60 * 60 * 1000);
 }
 
 if ('serviceWorker' in navigator) {

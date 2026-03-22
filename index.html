@@ -1,166 +1,208 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="de" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>ETF Strategy Dashboard</title>
     <link rel="manifest" href="manifest_app.json">
     <meta name="theme-color" content="#0f172a">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
     <link rel="icon" href="icon.svg" type="image/svg+xml">
+    
+    <!-- Tailwind CSS laden -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- VanillaTilt für den magischen 3D-Karten-Effekt -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.8.0/vanilla-tilt.min.js"></script>
+    
+    <!-- Die "Dark Fintech Magic" Farbpalette laden -->
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: { 
+          extend: { 
+            colors: { fintech: { 900: '#0f172a', 800: '#1e293b', accent: '#10b981', danger: '#ef4444' } } 
+          } 
+        }
+      }
+    </script>
+    
+    <!-- Unsere Magic-Effect Animationen -->
+    <style>
+        body { 
+            background: radial-gradient(circle at top center, #1e293b 0%, #0f172a 100%); 
+            min-height: 100vh; 
+        }
+        
+        /* Lich-Reflexion (Shine) auf dem Installieren Button */
+        .btn-shine { position: relative; overflow: hidden; }
+        .btn-shine::after {
+            content: ""; position: absolute; top: 0; left: -100%; width: 50%; height: 100%;
+            background: linear-gradient(to right, transparent, rgba(255,255,255,0.2), transparent);
+            transform: skewX(-20deg); animation: shine 3s infinite;
+        }
+        @keyframes shine { 0% { left: -100%; } 20% { left: 200%; } 100% { left: 200%; } }
+
+        /* Der pulsierende Radar-Punkt oben rechts */
+        .radar-dot { position: relative; }
+        .radar-dot::after {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            border-radius: 50%; border: 2px solid currentColor; animation: ripple 1.5s linear infinite;
+        }
+        @keyframes ripple { 0% { transform: scale(1); opacity: 1; } 100% { transform: scale(3); opacity: 0; } }
+
+        /* Verstecke Elemente wirklich, wenn inline so deklariert */
+        [style*="display: none"] { display: none !important; }
+    </style>
 </head>
-<body>
-    <div class="app-container">
-        <header class="glass-header">
-            <div>
-                <h1>Kaufsignal Strategie</h1>
-                <p class="subtitle">FTSE All World Tracker</p>
+<body class="font-sans text-slate-200 antialiased p-4 md:p-8 flex flex-col items-center">
+    
+    <!-- ==== START: KOPFZEILE (HEADER) ==== -->
+    <header class="w-full max-w-4xl flex justify-between items-end mb-8 border-b border-slate-700/50 pb-4">
+        <div>
+            <h1 class="text-3xl font-extrabold text-white tracking-tight">Kaufsignal Strategie</h1>
+            <p class="text-fintech-accent font-medium mt-1">FTSE All World Tracker</p>
+        </div>
+        
+        <div class="text-right flex flex-col items-end">
+            <!-- Pulsierender LIVE Radar -->
+            <div class="flex items-center space-x-2 bg-fintech-900 border border-fintech-accent/40 px-3 py-1 rounded-full mb-2 shadow-[0_0_10px_rgba(16,185,129,0.2)]">
+                <div class="w-2 h-2 bg-fintech-accent rounded-full radar-dot text-fintech-accent"></div>
+                <span class="text-fintech-accent text-xs font-bold tracking-wider" id="last-update">Laden...</span>
             </div>
-            <div class="status-indicator">
-                <span id="last-update" class="time">Laden...</span>
-                <span class="pulse-dot"></span>
-            </div>
-        </header>
-
-        <main class="dashboard">
-            <div class="global-status" id="global-status">
-                <div class="status-icon" id="global-icon">⏳</div>
-                <h2 id="global-text">Signal wird geprüft...</h2>
-                <p class="status-subtext">Warten auf Marktdaten</p>
-            </div>
-
-            <div class="cards-grid">
-                <!-- VIX Card -->
-                <div class="glass-card" id="card-vix">
-                    <div class="card-header">
-                        <span class="card-title">Volatilität (VIX)</span>
-                        <span class="status-badge" id="badge-vix">Ausstehend</span>
-                    </div>
-                    <div class="card-body">
-                        <div class="value-block">
-                            <span class="label">Ist-Wert</span>
-                            <span class="value" id="val-vix">--</span>
-                        </div>
-                        <div class="value-block target">
-                            <span class="label">Soll-Wert</span>
-                            <span class="value">> 30</span>
-                        </div>
-                    </div>
-                    <div class="progress-bar-container">
-                        <div class="progress-bar" id="progress-vix"></div>
-                    </div>
-                </div>
-
-                <!-- Trend Card -->
-                <div class="glass-card" id="card-trend">
-                    <div class="card-header">
-                        <span class="card-title">Trend (FTSE)</span>
-                        <span class="status-badge" id="badge-trend">Ausstehend</span>
-                    </div>
-                    <div class="card-body">
-                        <div class="value-block">
-                            <span class="label">Kurs Ist</span>
-                            <span class="value" id="val-price">--</span>
-                        </div>
-                        <div class="value-block target">
-                            <span class="label">SMA 200</span>
-                            <span class="value" id="val-sma">--</span>
-                        </div>
-                    </div>
-                    <p class="condition-text">Kurs ≤ SMA 200</p>
-                </div>
-
-                <!-- Sentiment Card -->
-                <div class="glass-card" id="card-sentiment">
-                    <div class="card-header">
-                        <span class="card-title">Fear & Greed</span>
-                        <span class="status-badge" id="badge-sentiment">Ausstehend</span>
-                    </div>
-                    <div class="card-body">
-                        <div class="value-block">
-                            <span class="label">Ist-Wert</span>
-                            <span class="value" id="val-fng">--</span>
-                        </div>
-                        <div class="value-block target">
-                            <span class="label">Soll-Wert</span>
-                            <span class="value">< 30</span>
-                        </div>
-                    </div>
-                    <div class="progress-bar-container flipped">
-                        <div class="progress-bar" id="progress-fng"></div>
-                    </div>
-                </div>
-            </div>
-
-            <button id="enable-notifications" class="btn-primary" style="display: none;">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
-                Push-Benachrichtigungen aktivieren
+            
+            <!-- Push Notification Button (wird durch JS angezeigt falls nötig) -->
+            <button id="enable-notifications" class="text-xs text-slate-400 hover:text-white transition flex items-center" style="display: none;">
+                <svg width="14" height="14" class="mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+                Push aktivieren
             </button>
+        </div>
+    </header>
 
-            <!-- Permanenter Installations-Button -->
-            <button id="btn-install-main" class="btn-install-main">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                App installieren
+    <!-- ==== START: HAUPTBEREICH ==== -->
+    <main class="w-full max-w-4xl space-y-6">
+        
+        <!-- GLOBAL STATUS PANEL -->
+        <div id="global-status" class="bg-fintech-800 border-[1px] border-slate-700/50 rounded-2xl p-6 shadow-xl flex items-center justify-between transform-gpu transition-all duration-500">
+            <div class="flex items-center space-x-4">
+                <div id="global-icon" class="text-4xl drop-shadow-md">⏳</div>
+                <div>
+                    <h2 id="global-text" class="text-xl font-bold text-white transition-all">Signal wird geprüft...</h2>
+                    <p class="text-slate-400 text-sm mt-1 status-subtext">Warten auf Marktdaten vom Server</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3 KARTEN BEREICH (GRID) -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            
+            <!-- ======== VIX KARTE ======== -->
+            <!-- data-tilt macht die Magie! -->
+            <div class="bg-fintech-800 border-[1px] border-slate-700/50 rounded-2xl p-6 shadow-[0_15px_30px_-10px_rgba(0,0,0,0.6)] transform-gpu hover:border-fintech-accent/40 transition-colors duration-500 flex flex-col justify-between" 
+                 data-tilt data-tilt-glare data-tilt-max-glare="0.1" data-tilt-max="4" data-tilt-speed="400">
+                <div>
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-bold text-slate-300">Volatilität (VIX)</h3>
+                        <!-- Das Badge wird per Javascript (app.js) grün oder rot gefärbt -->
+                        <span id="badge-vix" class="text-[10px] uppercase font-bold tracking-wider px-2 py-1 rounded-full bg-slate-700 text-slate-400 border border-slate-600 transition-all">Ausstehend</span>
+                    </div>
+                    <!-- Diese Zahl zählt später hoch -->
+                    <div class="text-5xl font-extrabold text-white mb-1" id="val-vix">--</div>
+                    <div class="text-slate-400 text-sm font-medium">Soll-Wert: > 30</div>
+                </div>
+                
+                <!-- Der Fortschrittsbalken unten an der Karte -->
+                <div class="mt-8 h-2 w-full bg-slate-900 rounded-full overflow-hidden shadow-inner">
+                    <div id="progress-vix" class="h-full bg-slate-600 transition-all duration-1000 ease-out" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <!-- ======== TREND (FTSE) KARTE ======== -->
+            <div class="bg-fintech-800 border-[1px] border-slate-700/50 rounded-2xl p-6 shadow-[0_15px_30px_-10px_rgba(0,0,0,0.6)] transform-gpu hover:border-fintech-accent/40 transition-colors duration-500 flex flex-col justify-between" 
+                 data-tilt data-tilt-glare data-tilt-max-glare="0.1" data-tilt-max="4" data-tilt-speed="400">
+                <div>
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-bold text-slate-300">Trend (FTSE)</h3>
+                        <span id="badge-trend" class="text-[10px] uppercase font-bold tracking-wider px-2 py-1 rounded-full bg-slate-700 text-slate-400 border border-slate-600 transition-all">Ausstehend</span>
+                    </div>
+                    <!-- Gezählte Zahl mit € Zeichen daneben -->
+                    <div class="text-5xl font-extrabold text-white mb-2"><span id="val-price">--</span><span class="text-2xl text-slate-400">€</span></div>
+                    
+                    <!-- Zusatz-Info in kleinem, edlen Kasten -->
+                    <div class="text-slate-400 text-sm font-medium bg-fintech-900/50 p-3 rounded-xl border border-slate-700/30 flex justify-between">
+                        <span>SMA 200:</span> 
+                        <span class="text-white font-bold"><span id="val-sma">--</span> €</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ======== FEAR & GREED KARTE ======== -->
+            <div class="bg-fintech-800 border-[1px] border-slate-700/50 rounded-2xl p-6 shadow-[0_15px_30px_-10px_rgba(0,0,0,0.6)] transform-gpu hover:border-fintech-accent/40 transition-colors duration-500 flex flex-col justify-between" 
+                 data-tilt data-tilt-glare data-tilt-max-glare="0.1" data-tilt-max="4" data-tilt-speed="400">
+                <div>
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-bold text-slate-300">Fear & Greed</h3>
+                        <span id="badge-sentiment" class="text-[10px] uppercase font-bold tracking-wider px-2 py-1 rounded-full bg-slate-700 text-slate-400 border border-slate-600 transition-all">Ausstehend</span>
+                    </div>
+                    <div class="text-5xl font-extrabold text-white mb-1" id="val-fng">--</div>
+                    <div class="text-slate-400 text-sm font-medium">Soll-Wert: < 30</div>
+                </div>
+                
+                <!-- Balken der sich von rechts nach links füllt (deshalb justify-end) -->
+                <div class="mt-8 h-2 w-full bg-slate-900 rounded-full overflow-hidden flex justify-end shadow-inner">
+                    <div id="progress-fng" class="h-full bg-slate-600 transition-all duration-1000 ease-out" style="width: 0%"></div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- APP INSTALLIEREN BUTTON -->
+        <div class="mt-10 flex justify-center pb-8">
+            <button id="btn-install-main" class="btn-shine bg-fintech-accent hover:bg-emerald-400 text-fintech-900 font-extrabold text-sm py-4 px-10 rounded-2xl transition-all duration-300 shadow-[0_0_15px_rgba(16,185,129,0.3)] hover:shadow-[0_0_25px_rgba(16,185,129,0.5)] hover:-translate-y-1 flex items-center uppercase tracking-wider">
+                <svg class="mr-2" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                Als App Installieren
             </button>
-        </main>
-    </div>
+        </div>
 
-    <!-- Modal: Installations-Anleitung -->
-    <div id="manual-install-modal" class="modal-overlay" style="display:none;">
-        <div class="modal-box">
-            <h3>📲 App installieren</h3>
+    </main>
 
-            <!-- Nur sichtbar wenn Chrome beforeinstallprompt verfügbar ist -->
-            <button id="btn-native-install" class="btn-primary" style="display:none; width:100%; margin-bottom:16px; justify-content:center;">
+    <!-- ==== START: MODAL FÜR DIE INSTALLATION ==== -->
+    <div id="manual-install-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-fintech-900/80 backdrop-blur-md" style="display:none;">
+        <div class="bg-fintech-800 border-2 border-slate-700/50 rounded-3xl p-8 max-w-sm w-full shadow-[0_25px_50px_rgba(0,0,0,0.8)] m-4">
+            
+            <h3 class="text-2xl font-bold text-white mb-6">📲 App installieren</h3>
+
+            <button id="btn-native-install" class="w-full bg-fintech-accent hover:bg-emerald-400 text-fintech-900 font-bold py-4 rounded-xl mb-6 shadow-[0_0_15px_rgba(16,185,129,0.4)] transition-all hidden">
                 ⚡ Jetzt direkt installieren
             </button>
 
-            <p>Oder manuell über das Browser-Menü:</p>
-            <ol>
-                <li>☰ <strong>Menü</strong> (oben/unten im Browser)</li>
-                <li>➕ <strong>„Seite hinzufügen zu..."</strong></li>
-                <li>🏠 <strong>„Startbildschirm"</strong></li>
-                <li>✅ <strong>„Hinzufügen"</strong> bestätigen</li>
+            <p class="text-slate-300 text-sm mb-4 font-medium">Oder manuell auf dem Handy über dein Browser-Menü installieren:</p>
+            
+            <ol class="text-slate-400 text-sm space-y-4 mb-8 ml-1 bg-slate-900/50 p-4 rounded-xl border border-slate-700/50">
+                <li class="flex items-center"><span class="mr-3 text-xl">☰</span> Öffne das Browser-Menü</li>
+                <li class="flex items-center"><span class="mr-3 text-xl">➕</span> Wähle "Zum Startbildschirm"</li>
+                <li class="flex items-center"><span class="mr-3 text-xl">✅</span> Klicke auf "Hinzufügen"</li>
             </ol>
-            <button id="btn-close-modal" class="btn-primary" style="margin-top:16px;">Schließen</button>
+            
+            <button id="btn-close-modal" class="w-full bg-slate-700 hover:bg-slate-600 text-white font-bold py-4 rounded-xl transition-all hover:-translate-y-0.5 shadow-md">
+                Schließen
+            </button>
         </div>
     </div>
 
-    <!-- PWA Install Prompt (Chrome auto-banner) -->
-    <div id="install-prompt" class="install-card" style="display: none;">
-        <div class="install-info">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14.5v-5h2v5h-2zm0-7v-2h2v2h-2z"/></svg>
-            <div>
-                <h3>App installieren</h3>
-                <p>Füge das Dashboard zu deinem Homescreen hinzu</p>
-            </div>
-        </div>
-        <button id="btn-install" class="btn-secondary">Installieren</button>
-        <button id="btn-close-install" class="btn-ghost">Später</button>
-    </div>
-
-    <!-- Cache-Buster: löscht alle alten Service Worker + Caches beim Laden -->
+    <!-- PWA Helper / Cache Löschen (Unverändert) -->
     <script>
         (async function() {
             if ('serviceWorker' in navigator) {
                 const regs = await navigator.serviceWorker.getRegistrations();
-                for (const reg of regs) {
-                    await reg.unregister();
-                    console.log('[BOOT] SW deregistriert:', reg.scope);
-                }
+                for (const reg of regs) { await reg.unregister(); }
             }
             if ('caches' in window) {
                 const keys = await caches.keys();
-                for (const key of keys) {
-                    await caches.delete(key);
-                    console.log('[BOOT] Cache gelöscht:', key);
-                }
+                for (const key of keys) { await caches.delete(key); }
             }
         })();
     </script>
-    <script src="app.js?v=7"></script>
+    
+    <!-- Lade unsere neue Javascript-Logik (inkl. Counter-Magic) -->
+    <script src="app.js?v=9"></script>
 </body>
 </html>

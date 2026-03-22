@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="de" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <title>Design 7: Magic Effects</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- VanillaTilt.js für 3D Hologram-Effekt -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.8.0/vanilla-tilt.min.js"></script>
+    <style>
+        /* Animierter fließender Hintergrund */
+        .bg-animated {
+            background: linear-gradient(-45deg, #0f172a, #1e1b4b, #312e81, #0f172a);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+        }
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        /* Lich-Reflexion (Shine) auf dem Button */
+        .btn-shine {
+            position: relative;
+            overflow: hidden;
+        }
+        .btn-shine::after {
+            content: "";
+            position: absolute;
+            top: 0; left: -100%;
+            width: 50%; height: 100%;
+            background: linear-gradient(to right, transparent, rgba(255,255,255,0.4), transparent);
+            transform: skewX(-20deg);
+            animation: shine 3s infinite;
+        }
+        @keyframes shine {
+            0% { left: -100%; }
+            20% { left: 200%; }
+            100% { left: 200%; }
+        }
+
+        /* Pulsierender Radar-Punkt (Live-Indikator) */
+        .radar-dot {
+            position: relative;
+        }
+        .radar-dot::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            border-radius: 50%;
+            border: 2px solid #10b981;
+            animation: ripple 1.5s linear infinite;
+        }
+        @keyframes ripple {
+            0% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(3); opacity: 0; }
+        }
+    </style>
+</head>
+<body class="bg-animated min-h-screen flex items-center justify-center p-6 font-sans text-white">
+    
+    <!-- 3D Karte (bewegt sich mit der Maus) -->
+    <!-- Durch data-tilt wird die Karte zum 3D-Objekt mit Lichtspiegelung (glare) -->
+    <div class="glass-card bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-8 w-full max-w-md shadow-[0_20px_50px_rgba(0,0,0,0.5)] transform-gpu transition-all" 
+         data-tilt data-tilt-glare data-tilt-max-glare="0.5" data-tilt-max="10" data-tilt-speed="400">
+        
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-xl font-semibold text-white/90">FTSE All-World</h2>
+            <!-- Live-Badge mit pulsierendem Punkt -->
+            <div class="flex items-center space-x-2 bg-emerald-500/20 px-3 py-1 rounded-full border border-emerald-500/30">
+                <div class="w-2 h-2 bg-emerald-400 rounded-full radar-dot"></div>
+                <span class="text-emerald-400 text-xs font-bold tracking-wider">LIVE</span>
+            </div>
+        </div>
+        
+        <!-- Bereich für den hochzählenden Preis -->
+        <div class="text-6xl font-black mb-2 tracking-tighter" id="price">0.00 <span class="text-2xl text-white/50">€</span></div>
+        
+        <div class="text-emerald-400 flex items-center font-bold mb-8 text-lg">
+            <svg class="w-6 h-6 mr-1 drop-shadow-[0_0_5px_rgba(16,185,129,0.8)]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
+            <span class="opacity-0 translate-y-2 transition-all duration-1000 ease-out" id="change-text">+1.2% Heute</span>
+        </div>
+        
+        <button class="btn-shine w-full bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-teal-400 hover:to-emerald-500 text-slate-900 font-extrabold text-lg py-5 px-4 rounded-2xl transition-all duration-300 shadow-[0_0_20px_rgba(16,185,129,0.5)] hover:shadow-[0_0_30px_rgba(16,185,129,0.8)] hover:scale-105">
+            KAUFSIGNAL AKTIV
+        </button>
+    </div>
+
+    <!-- Ein kleines Javascript-Skript für den Zahlzähler-Effekt beim Laden -->
+    <script>
+        const obj = document.getElementById("price");
+        const changeText = document.getElementById("change-text");
+        let current = 0;
+        const target = 124.50; // Der Endpreis
+        const duration = 1200; // Dauer der Animation in Millisekunden
+        const steps = 60;
+        const increment = target / steps;
+        
+        // Zählt die Zahl hoch
+        const counter = setInterval(() => {
+            current += increment;
+            if (current >= target) {
+                current = target;
+                clearInterval(counter);
+                // Blendet den "+1.2%" Text sanft ein, sobald das Zählen fertig ist
+                changeText.classList.remove('opacity-0', 'translate-y-2');
+                changeText.classList.add('opacity-100', 'translate-y-0');
+            }
+            obj.innerHTML = current.toFixed(2) + ' <span class="text-3xl text-white/50">€</span>';
+        }, duration / steps);
+    </script>
+</body>
+</html>

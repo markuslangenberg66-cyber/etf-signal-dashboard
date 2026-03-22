@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Design 5: Neumorphism</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-[#e0e5ec] text-slate-600 min-h-screen flex items-center justify-center p-6 font-sans">
+    
+    <!-- Neumorphic Karte (sieht aus wie aus dem Material gedruckt) -->
+    <div class="bg-[#e0e5ec] rounded-[2rem] p-10 w-full max-w-md shadow-[9px_9px_16px_rgb(163,177,198,0.6),-9px_-9px_16px_rgba(255,255,255,0.5)]">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-lg font-bold text-slate-500 uppercase tracking-wider">FTSE All-World</h2>
+            <span class="text-indigo-500 text-xs font-bold px-4 py-2 rounded-full shadow-[inset_3px_3px_6px_rgb(163,177,198,0.4),inset_-3px_-3px_6px_rgba(255,255,255,0.9)]">📡 Live</span>
+        </div>
+        
+        <div class="text-5xl font-extrabold text-slate-700 tracking-tight mb-2">124.50 <span class="text-2xl text-slate-400">€</span></div>
+        
+        <div class="text-emerald-500 flex items-center font-bold mb-10">
+            <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
+            +1.2% Heute
+        </div>
+        
+        <!-- Button (drückt sich beim Klicken ein) -->
+        <button class="w-full bg-[#e0e5ec] text-indigo-600 font-bold text-lg py-4 px-4 rounded-2xl transition duration-200 shadow-[6px_6px_10px_0_rgba(163,177,198,0.7),-6px_-6px_10px_0_rgba(255,255,255,0.8)] hover:shadow-[4px_4px_6px_0_rgba(163,177,198,0.6),-4px_-4px_6px_0_rgba(255,255,255,0.9)] active:shadow-[inset_6px_6px_10px_0_rgba(163,177,198,0.8),inset_-6px_-6px_10px_0_rgba(255,255,255,0.9)]">
+            Kaufsignal Aktiv
+        </button>
+    </div>
+
+</body>
+</html>

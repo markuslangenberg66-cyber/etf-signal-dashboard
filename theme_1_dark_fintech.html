@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="de" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <title>Design 1: Dark Fintech</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: { 
+          extend: { 
+            colors: { 
+              fintech: { 900: '#0f172a', 800: '#1e293b', accent: '#10b981' } 
+            } 
+          } 
+        }
+      }
+    </script>
+</head>
+<body class="bg-fintech-900 text-slate-200 min-h-screen flex items-center justify-center p-6 font-sans">
+    
+    <!-- Haupt-Karte -->
+    <div class="bg-fintech-800 border border-slate-700 rounded-2xl p-8 w-full max-w-md shadow-2xl">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-xl font-bold tracking-tight text-white">FTSE All-World</h2>
+            <span class="bg-fintech-900 text-fintech-accent text-xs font-semibold px-3 py-1 rounded-full border border-fintech-accent/30">Live Börse</span>
+        </div>
+        
+        <div class="text-5xl font-extrabold text-white mb-2">124.50 €</div>
+        
+        <div class="text-fintech-accent flex items-center font-medium mb-8">
+            <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
+            +1.2% Heute
+        </div>
+        
+        <button class="w-full bg-fintech-accent hover:bg-emerald-400 text-fintech-900 font-bold text-lg py-4 px-4 rounded-xl transition duration-200 shadow-[0_0_15px_rgba(16,185,129,0.4)]">
+            KAUFSIGNAL AKTIV
+        </button>
+    </div>
+
+</body>
+</html>

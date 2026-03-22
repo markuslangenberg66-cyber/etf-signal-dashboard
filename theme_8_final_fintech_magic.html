@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="de" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <title>Design 8: Final Dark Fintech Magic</title>
+    <!-- Tailwind CSS laden -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- VanillaTilt für den 3D-Karten-Effekt -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.8.0/vanilla-tilt.min.js"></script>
+    
+    <!-- Die "Dark Fintech" Farbpalette als Standard definieren -->
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: { 
+          extend: { 
+            colors: { fintech: { 900: '#0f172a', 800: '#1e293b', accent: '#10b981' } } 
+          } 
+        }
+      }
+    </script>
+    
+    <!-- Die "Magischen Effekte" -->
+    <style>
+        /* Sanftes Glühen im Hintergrund aus dem Dark-Fintech Theme */
+        body {
+            background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
+        }
+        
+        /* Licht-Reflexion (Shine) auf dem Button */
+        .btn-shine { position: relative; overflow: hidden; }
+        .btn-shine::after {
+            content: ""; position: absolute; top: 0; left: -100%; width: 50%; height: 100%;
+            background: linear-gradient(to right, transparent, rgba(255,255,255,0.4), transparent);
+            transform: skewX(-20deg); animation: shine 3s infinite;
+        }
+        @keyframes shine { 0% { left: -100%; } 20% { left: 200%; } 100% { left: 200%; } }
+
+        /* Pulsierender Radar-Punkt (Live-Indikator, passend zu Aktien) */
+        .radar-dot { position: relative; }
+        .radar-dot::after {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            border-radius: 50%; border: 2px solid #10b981; animation: ripple 1.5s linear infinite;
+        }
+        @keyframes ripple { 0% { transform: scale(1); opacity: 1; } 100% { transform: scale(3); opacity: 0; } }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-6 font-sans text-slate-200">
+    
+    <!-- Die große Premium-Karte: Edel dunkel, runder, mit 3D-Neigung -->
+    <!-- hover:border-fintech-accent lässt den Rand beim Daraufzeigen leicht grünlich glühen -->
+    <div class="bg-fintech-800 border-[1px] border-slate-700/50 rounded-2xl p-8 w-full max-w-md shadow-[0_25px_50px_-12px_rgba(0,0,0,0.8)] transform-gpu hover:border-fintech-accent/50 transition-colors duration-500" 
+         data-tilt data-tilt-glare data-tilt-max-glare="0.15" data-tilt-max="4" data-tilt-speed="400">
+        
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-xl font-bold tracking-tight text-white">FTSE All-World</h2>
+            
+            <!-- Der Live-Badge auf dunkel (Fintech) gemischt mit dem Radar (Magic) -->
+            <div class="flex items-center space-x-2 bg-fintech-900 border border-fintech-accent/40 px-3 py-1 rounded-full shadow-[0_0_10px_rgba(16,185,129,0.2)]">
+                <div class="w-2 h-2 bg-fintech-accent rounded-full radar-dot"></div>
+                <span class="text-fintech-accent text-xs font-bold tracking-wider">LIVE</span>
+            </div>
+        </div>
+        
+        <!-- Die riesige Zahl (zählt später hoch) -->
+        <div class="text-6xl font-extrabold text-white mb-2 tracking-tighter" id="price">0.00 <span class="text-2xl text-slate-400">€</span></div>
+        
+        <!-- Das "+1.2%" mit sanftem leuchtendem Schatten um das Icon -->
+        <div class="text-fintech-accent flex items-center font-bold mb-8 text-lg">
+            <svg class="w-6 h-6 mr-1 drop-shadow-[0_0_5px_rgba(16,185,129,0.4)]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
+            <span class="opacity-0 translate-y-2 transition-all duration-1000 ease-out" id="change-text">+1.2% Heute</span>
+        </div>
+        
+        <!-- Der "Dark Fintech" Button durchkreuzt vom magischen Licht-Kegel -->
+        <button class="btn-shine w-full bg-fintech-accent hover:bg-emerald-400 text-fintech-900 font-extrabold text-lg py-4 px-4 rounded-xl transition-all duration-300 shadow-[0_0_15px_rgba(16,185,129,0.4)] hover:shadow-[0_0_25px_rgba(16,185,129,0.6)] hover:scale-[1.02]">
+            KAUFSIGNAL AKTIV
+        </button>
+    </div>
+
+    <!-- Die Javascript-Zauberei für den Nummern-Zähler -->
+    <script>
+        const obj = document.getElementById("price");
+        const changeText = document.getElementById("change-text");
+        let current = 0; 
+        const target = 124.50; 
+        const duration = 1200; // Zählt für 1,2 Sekunden
+        const steps = 60; 
+        const increment = target / steps;
+        
+        // Timer, der die Zahl hochrechnet
+        const counter = setInterval(() => {
+            current += increment;
+            if (current >= target) {
+                current = target; 
+                clearInterval(counter);
+                // Blendet das grüne "+1.2%" ein, sobald der Preis steht
+                changeText.classList.remove('opacity-0', 'translate-y-2');
+                changeText.classList.add('opacity-100', 'translate-y-0');
+            }
+            obj.innerHTML = current.toFixed(2) + ' <span class="text-2xl text-slate-400">€</span>';
+        }, duration / steps);
+    </script>
+</body>
+</html>

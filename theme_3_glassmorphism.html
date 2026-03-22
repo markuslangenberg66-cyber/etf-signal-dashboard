@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Design 3: Modern Glassmorphism</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 min-h-screen flex items-center justify-center p-6 font-sans">
+    
+    <!-- Haupt-Karte (Glas-Effekt) -->
+    <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-8 w-full max-w-md shadow-2xl">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-xl font-medium text-white/80">FTSE All-World</h2>
+            <span class="bg-white/20 text-white text-xs font-semibold px-3 py-1 rounded-full backdrop-blur-md border border-white/10">Live Börse</span>
+        </div>
+        
+        <div class="text-5xl font-black text-white mb-2 tracking-tighter">124.50 €</div>
+        
+        <div class="text-green-300 flex items-center font-medium mb-8 drop-shadow-md">
+            <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
+            +1.2% Heute
+        </div>
+        
+        <button class="w-full bg-white text-purple-600 hover:bg-opacity-90 font-bold text-lg py-4 px-4 rounded-2xl transition duration-300 shadow-[0_10px_25px_rgba(0,0,0,0.2)] hover:-translate-y-1">
+            ✨ Kaufsignal Aktiv
+        </button>
+    </div>
+
+</body>
+</html>

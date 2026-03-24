@@ -13,23 +13,56 @@
     <!-- VanillaTilt für den magischen 3D-Karten-Effekt -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.8.0/vanilla-tilt.min.js"></script>
     
-    <!-- Die "Dark Fintech Magic" Farbpalette laden -->
+    <!-- Die Google Stitch "The Precision Lens" Farbpalette laden -->
     <script>
       tailwind.config = {
         darkMode: 'class',
         theme: { 
           extend: { 
-            colors: { fintech: { 900: '#0f172a', 800: '#1e293b', accent: '#10b981', danger: '#ef4444' } } 
+            colors: { 
+              'stitch-bg': '#10141a',
+              'stitch-surface': '#181c22',
+              'stitch-surface-high': '#262a31',
+              'stitch-surface-highest': '#31353c',
+              'stitch-primary': '#46f1c5',
+              'stitch-on-primary': '#00382b',
+              'stitch-secondary': '#ffb95f',
+              'stitch-tertiary': '#ffcbc6',
+              'stitch-error': '#ffb4ab',
+              'stitch-outline': '#3b4a44',
+              'stitch-on-surface': '#dfe2eb'
+            },
+            fontFamily: {
+              sans: ['Inter', 'system-ui', 'sans-serif'],
+            },
+            borderRadius: {
+              'stitch': '0.375rem',
+            }
           } 
         }
       }
     </script>
     
-    <!-- Unsere Magic-Effect Animationen -->
+    <!-- Unsere Stitch "Technical Ledger" Styles -->
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
         body { 
-            background: radial-gradient(circle at top center, #1e293b 0%, #0f172a 100%); 
+            background-color: #10141a;
+            /* Technical Grid Background (Stitch MD Rule 5) */
+            background-image: linear-gradient(#3b4a441a 1px, transparent 1px),
+                              linear-gradient(90deg, #3b4a441a 1px, transparent 1px);
+            background-size: 24px 24px;
             min-height: 100vh; 
+            color: #dfe2eb;
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* Glassmorphism Rule (Stitch MD Rule 2) */
+        .stitch-glass {
+            background: rgba(49, 53, 60, 0.4); /* surface-container-highest */
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
         }
         
         /* Lich-Reflexion (Shine) auf dem Installieren Button */
@@ -49,141 +82,181 @@
         }
         @keyframes ripple { 0% { transform: scale(1); opacity: 1; } 100% { transform: scale(3); opacity: 0; } }
 
+        /* Editorial Typography Scale (Huge number, tiny label) */
+        .display-lg { font-size: 2.5rem; font-weight: 900; line-height: 1; letter-spacing: -0.05em; }
+        .label-sm { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #85948d; }
+
+        /* Desktop: Größere Display-Schrift */
+        @media (min-width: 768px) {
+            .display-lg { font-size: 3.5rem; }
+        }
+
+        /* Ghost Border (Stitch MD Rule 4) */
+        .ghost-border { border-left: 3px solid transparent; transition: all 0.3s ease; }
+        .ghost-border-hover:hover { 
+            border-left-color: #46f1c5; 
+            background: #353940 !important; /* surface_bright fallback */
+        }
+
         /* Verstecke Elemente wirklich, wenn inline so deklariert */
         [style*="display: none"] { display: none !important; }
+
+        /* Area Gradient Pulse (Custom Component) */
+        .area-pulse {
+            background: linear-gradient(to bottom, rgba(70, 241, 197, 0.1) 0%, transparent 100%);
+        }
+
+        /* ── MOBILE OPTIMIERUNG ── */
+        @media (max-width: 767px) {
+            /* Kompakteres Padding auf Handy */
+            .mobile-card { padding: 1.25rem !important; }
+            
+            /* Header kleiner auf Handy */
+            .mobile-title { font-size: 1.75rem !important; }
+            
+            /* Status-Panel kompakter */
+            .mobile-status { padding: 2rem 1rem !important; }
+            .mobile-status .display-lg { font-size: 2rem; }
+            
+            /* Install-Button volle Breite */
+            .mobile-install { width: 100%; justify-content: center; }
+        }
     </style>
 </head>
-<body class="font-sans text-slate-200 antialiased p-4 md:p-8 flex flex-col items-center">
+<body class="font-sans text-slate-200 antialiased p-3 sm:p-4 md:p-8 flex flex-col items-center">
     
     <!-- ==== START: KOPFZEILE (HEADER) ==== -->
-    <header class="w-full max-w-4xl flex justify-between items-end mb-8 border-b border-slate-700/50 pb-4">
-        <div>
-            <h1 class="text-3xl font-extrabold text-white tracking-tight">Kaufsignal Strategie</h1>
-            <p class="text-fintech-accent font-medium mt-1">FTSE All World Tracker</p>
+    <header class="w-full max-w-5xl flex justify-between items-end mb-6 sm:mb-12 mt-2 sm:mt-4 px-1 sm:px-4">
+        <div class="min-w-0 flex-1">
+            <div class="label-sm mb-1">Portfolio Strategy</div>
+            <h1 class="text-2xl sm:text-4xl font-extrabold text-white tracking-tighter uppercase italic mobile-title">Technical Ledger</h1>
+            <p class="text-stitch-primary font-black mt-1 tracking-tight text-xs sm:text-base">FTSE ALL-WORLD TRACKER</p>
         </div>
         
         <div class="text-right flex flex-col items-end">
             <!-- Pulsierender LIVE Radar -->
-            <div class="flex items-center space-x-2 bg-fintech-900 border border-fintech-accent/40 px-3 py-1 rounded-full mb-2 shadow-[0_0_10px_rgba(16,185,129,0.2)]">
-                <div class="w-2 h-2 bg-fintech-accent rounded-full radar-dot text-fintech-accent"></div>
-                <span class="text-fintech-accent text-xs font-bold tracking-wider" id="last-update">Laden...</span>
+            <div class="flex items-center space-x-2 bg-stitch-surface-highest border border-stitch-primary/30 px-3 py-1 rounded-sm mb-2 shadow-[0_0_15px_rgba(70,241,197,0.1)]">
+                <div class="w-1.5 h-1.5 bg-stitch-primary rounded-full radar-dot text-stitch-primary"></div>
+                <span class="text-stitch-primary text-[10px] font-black tracking-widest uppercase" id="last-update">Syncing...</span>
             </div>
             
             <!-- Push Notification Button (wird durch JS angezeigt falls nötig) -->
-            <button id="enable-notifications" class="text-xs text-slate-400 hover:text-white transition flex items-center" style="display: none;">
-                <svg width="14" height="14" class="mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
-                Push aktivieren
+            <button id="enable-notifications" class="text-[10px] font-bold uppercase tracking-wider text-stitch-outline hover:text-white transition flex items-center" style="display: none;">
+                <svg width="12" height="12" class="mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+                Enable Push
             </button>
         </div>
     </header>
 
     <!-- ==== START: HAUPTBEREICH ==== -->
-    <main class="w-full max-w-4xl space-y-6">
+    <main class="w-full max-w-5xl space-y-4 sm:space-y-8 px-1 sm:px-4">
         
-        <!-- GLOBAL STATUS PANEL -->
-        <div id="global-status" class="bg-fintech-800 border-[1px] border-slate-700/50 rounded-2xl p-6 shadow-xl flex items-center justify-between transform-gpu transition-all duration-500">
-            <div class="flex items-center space-x-4">
-                <div id="global-icon" class="text-4xl drop-shadow-md">⏳</div>
-                <div>
-                    <h2 id="global-text" class="text-xl font-bold text-white transition-all">Signal wird geprüft...</h2>
-                    <p class="text-slate-400 text-sm mt-1 status-subtext">Warten auf Marktdaten vom Server</p>
-                </div>
+        <!-- GLOBAL STATUS PANEL (Technical Ledger Style) -->
+        <div id="global-status" class="bg-stitch-surface rounded-stitch p-6 sm:p-10 flex flex-col items-center justify-center transform-gpu transition-all duration-700 area-pulse border-b border-stitch-outline/20 mobile-status">
+            <div id="global-icon" class="text-6xl mb-4 drop-shadow-xl saturate-150">⏳</div>
+            <div class="text-center">
+                <div class="label-sm opacity-60 mb-2">System Status</div>
+                <h2 id="global-text" class="display-lg text-white mb-2">Analyzing...</h2>
+                <p class="label-sm status-subtext">Calculating global market liquidity & signals</p>
             </div>
         </div>
 
-        <!-- 3 KARTEN BEREICH (GRID) -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- 3 KARTEN BEREICH (GRID) - Editorial Scale -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-8">
             
             <!-- ======== VIX KARTE ======== -->
             <!-- data-tilt macht die Magie! -->
-            <div class="bg-fintech-800 border-[1px] border-slate-700/50 rounded-2xl p-6 shadow-[0_15px_30px_-10px_rgba(0,0,0,0.6)] transform-gpu hover:border-fintech-accent/40 transition-colors duration-500 flex flex-col justify-between" 
-                 data-tilt data-tilt-glare data-tilt-max-glare="0.1" data-tilt-max="4" data-tilt-speed="400">
+            <div class="bg-stitch-surface rounded-stitch p-5 sm:p-8 shadow-2xl transform-gpu ghost-border ghost-border-hover transition-all duration-500 flex flex-col justify-between mobile-card" 
+                 data-tilt data-tilt-glare data-tilt-max-glare="0.05" data-tilt-max="2" data-tilt-speed="400">
                 <div>
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="font-bold text-slate-300">Volatilität (VIX)</h3>
-                        <!-- Das Badge wird per Javascript (app.js) grün oder rot gefärbt -->
-                        <span id="badge-vix" class="text-[10px] uppercase font-bold tracking-wider px-2 py-1 rounded-full bg-slate-700 text-slate-400 border border-slate-600 transition-all">Ausstehend</span>
+                    <div class="flex justify-between items-start mb-6">
+                        <div class="label-sm">Volatility (VIX)</div>
+                        <!-- Das Badge wird per Javascript (app.js) gefärbt -->
+                        <span id="badge-vix" class="label-sm px-2 py-0.5 rounded-sm bg-stitch-surface-highest text-stitch-outline border border-stitch-outline/30 transition-all">Pending</span>
                     </div>
                     <!-- Diese Zahl zählt später hoch -->
-                    <div class="text-5xl font-extrabold text-white mb-1" id="val-vix">--</div>
-                    <div class="text-slate-400 text-sm font-medium">Soll-Wert: > 30</div>
+                    <div class="display-lg text-white" id="val-vix">--</div>
+                    <div class="label-sm opacity-50 mt-1">Threshold: > 30.00</div>
                 </div>
                 
                 <!-- Der Fortschrittsbalken unten an der Karte -->
-                <div class="mt-8 h-2 w-full bg-slate-900 rounded-full overflow-hidden shadow-inner">
-                    <div id="progress-vix" class="h-full bg-slate-600 transition-all duration-1000 ease-out" style="width: 0%"></div>
+                <div class="mt-12 h-1 w-full bg-stitch-surface-highest rounded-full overflow-hidden">
+                    <div id="progress-vix" class="h-full bg-stitch-outline/50 transition-all duration-1000 ease-out" style="width: 0%"></div>
                 </div>
             </div>
 
             <!-- ======== TREND (FTSE) KARTE ======== -->
-            <div class="bg-fintech-800 border-[1px] border-slate-700/50 rounded-2xl p-6 shadow-[0_15px_30px_-10px_rgba(0,0,0,0.6)] transform-gpu hover:border-fintech-accent/40 transition-colors duration-500 flex flex-col justify-between" 
-                 data-tilt data-tilt-glare data-tilt-max-glare="0.1" data-tilt-max="4" data-tilt-speed="400">
+            <div class="bg-stitch-surface rounded-stitch p-5 sm:p-8 shadow-2xl transform-gpu ghost-border ghost-border-hover transition-all duration-500 flex flex-col justify-between mobile-card" 
+                 data-tilt data-tilt-glare data-tilt-max-glare="0.05" data-tilt-max="2" data-tilt-speed="400">
                 <div>
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="font-bold text-slate-300">Trend (FTSE)</h3>
-                        <span id="badge-trend" class="text-[10px] uppercase font-bold tracking-wider px-2 py-1 rounded-full bg-slate-700 text-slate-400 border border-slate-600 transition-all">Ausstehend</span>
+                    <div class="flex justify-between items-start mb-6">
+                        <div class="label-sm">Market Trend (FTSE)</div>
+                        <span id="badge-trend" class="label-sm px-2 py-0.5 rounded-sm bg-stitch-surface-highest text-stitch-outline border border-stitch-outline/30 transition-all">Pending</span>
                     </div>
-                    <!-- Gezählte Zahl mit € Zeichen daneben -->
-                    <div class="text-5xl font-extrabold text-white mb-2"><span id="val-price">--</span><span class="text-2xl text-slate-400">€</span></div>
+                    <!-- Gezählte Zahl -->
+                    <div class="display-lg text-white"><span id="val-price">--</span><span class="text-xl text-stitch-outline ml-1">EUR</span></div>
                     
                     <!-- Zusatz-Info in kleinem, edlen Kasten -->
-                    <div class="text-slate-400 text-sm font-medium bg-fintech-900/50 p-3 rounded-xl border border-slate-700/30 flex justify-between">
-                        <span>SMA 200:</span> 
-                        <span class="text-white font-bold"><span id="val-sma">--</span> €</span>
+                    <div class="mt-4 bg-stitch-surface-highest/50 p-4 rounded-stitch border border-stitch-outline/20">
+                        <div class="flex justify-between items-end">
+                            <span class="label-sm">SMA 200 Indicator</span> 
+                            <span class="text-white font-black text-xl"><span id="val-sma">--</span></span>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <!-- ======== FEAR & GREED KARTE ======== -->
-            <div class="bg-fintech-800 border-[1px] border-slate-700/50 rounded-2xl p-6 shadow-[0_15px_30px_-10px_rgba(0,0,0,0.6)] transform-gpu hover:border-fintech-accent/40 transition-colors duration-500 flex flex-col justify-between" 
-                 data-tilt data-tilt-glare data-tilt-max-glare="0.1" data-tilt-max="4" data-tilt-speed="400">
+            <div class="bg-stitch-surface rounded-stitch p-5 sm:p-8 shadow-2xl transform-gpu ghost-border ghost-border-hover transition-all duration-500 flex flex-col justify-between mobile-card" 
+                 data-tilt data-tilt-glare data-tilt-max-glare="0.05" data-tilt-max="2" data-tilt-speed="400">
                 <div>
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="font-bold text-slate-300">Fear & Greed</h3>
-                        <span id="badge-sentiment" class="text-[10px] uppercase font-bold tracking-wider px-2 py-1 rounded-full bg-slate-700 text-slate-400 border border-slate-600 transition-all">Ausstehend</span>
+                    <div class="flex justify-between items-start mb-6">
+                        <div class="label-sm">Fear & Greed</div>
+                        <span id="badge-sentiment" class="label-sm px-2 py-0.5 rounded-sm bg-stitch-surface-highest text-stitch-outline border border-stitch-outline/30 transition-all">Pending</span>
                     </div>
-                    <div class="text-5xl font-extrabold text-white mb-1" id="val-fng">--</div>
-                    <div class="text-slate-400 text-sm font-medium">Soll-Wert: < 30</div>
+                    <div class="display-lg text-white" id="val-fng">--</div>
+                    <div class="label-sm opacity-50 mt-1">Threshold: < 30</div>
                 </div>
                 
                 <!-- Balken der sich von rechts nach links füllt (deshalb justify-end) -->
-                <div class="mt-8 h-2 w-full bg-slate-900 rounded-full overflow-hidden flex justify-end shadow-inner">
-                    <div id="progress-fng" class="h-full bg-slate-600 transition-all duration-1000 ease-out" style="width: 0%"></div>
+                <div class="mt-12 h-1 w-full bg-stitch-surface-highest rounded-full overflow-hidden flex justify-end">
+                    <div id="progress-fng" class="h-full bg-stitch-outline/50 transition-all duration-1000 ease-out" style="width: 0%"></div>
                 </div>
             </div>
 
         </div>
 
-        <!-- APP INSTALLIEREN BUTTON -->
-        <div class="mt-10 flex justify-center pb-8">
-            <button id="btn-install-main" class="btn-shine bg-fintech-accent hover:bg-emerald-400 text-fintech-900 font-extrabold text-sm py-4 px-10 rounded-2xl transition-all duration-300 shadow-[0_0_15px_rgba(16,185,129,0.3)] hover:shadow-[0_0_25px_rgba(16,185,129,0.5)] hover:-translate-y-1 flex items-center uppercase tracking-wider">
-                <svg class="mr-2" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                Als App Installieren
+        <!-- APP INSTALLIEREN BUTTON - Primary Tone -->
+        <div class="mt-16 flex justify-center pb-12">
+            <button id="btn-install-main" class="btn-shine bg-stitch-primary hover:bg-white text-stitch-on-primary font-black py-4 px-8 sm:px-12 rounded-stitch transition-all duration-400 shadow-[0_10px_30px_-5px_rgba(70,241,197,0.3)] hover:-translate-y-1 flex items-center uppercase tracking-[0.15em] sm:tracking-[0.2em] text-[10px] sm:text-xs mobile-install">
+                <svg class="mr-3" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="square"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                Initialize Desktop Application
             </button>
         </div>
 
     </main>
 
     <!-- ==== START: MODAL FÜR DIE INSTALLATION ==== -->
-    <div id="manual-install-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-fintech-900/80 backdrop-blur-md" style="display:none;">
-        <div class="bg-fintech-800 border-2 border-slate-700/50 rounded-3xl p-8 max-w-sm w-full shadow-[0_25px_50px_rgba(0,0,0,0.8)] m-4">
+    <div id="manual-install-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-stitch-bg/90 backdrop-blur-xl" style="display:none;">
+        <div class="bg-stitch-surface border border-stitch-outline/30 rounded-stitch p-12 max-w-md w-full shadow-2xl m-4">
             
-            <h3 class="text-2xl font-bold text-white mb-6">📲 App installieren</h3>
+            <div class="label-sm mb-2 opacity-50 text-center">Protocol</div>
+            <h3 class="text-3xl font-black text-white mb-8 text-center tracking-tighter uppercase">Initialize PWA</h3>
 
-            <button id="btn-native-install" class="w-full bg-fintech-accent hover:bg-emerald-400 text-fintech-900 font-bold py-4 rounded-xl mb-6 shadow-[0_0_15px_rgba(16,185,129,0.4)] transition-all hidden">
-                ⚡ Jetzt direkt installieren
+            <button id="btn-native-install" class="w-full bg-stitch-primary hover:bg-white text-stitch-on-primary font-black py-5 rounded-stitch mb-8 shadow-xl transition-all hidden uppercase tracking-widest text-xs">
+                Execute Instant Native Setup
             </button>
 
-            <p class="text-slate-300 text-sm mb-4 font-medium">Oder manuell auf dem Handy über dein Browser-Menü installieren:</p>
+            <div class="label-sm mb-4 text-center">Manual Integration Steps</div>
             
-            <ol class="text-slate-400 text-sm space-y-4 mb-8 ml-1 bg-slate-900/50 p-4 rounded-xl border border-slate-700/50">
-                <li class="flex items-center"><span class="mr-3 text-xl">☰</span> Öffne das Browser-Menü</li>
-                <li class="flex items-center"><span class="mr-3 text-xl">➕</span> Wähle "Zum Startbildschirm"</li>
-                <li class="flex items-center"><span class="mr-3 text-xl">✅</span> Klicke auf "Hinzufügen"</li>
+            <ol class="text-slate-400 text-[11px] font-bold uppercase tracking-widest space-y-6 mb-10 bg-black/30 p-8 rounded-stitch border border-stitch-outline/20">
+                <li class="flex items-center"><span class="mr-4 text-stitch-primary text-lg">01</span> Access Browser Settings</li>
+                <li class="flex items-center"><span class="mr-4 text-stitch-primary text-lg">02</span> Select "Add to Home Screen"</li>
+                <li class="flex items-center"><span class="mr-4 text-stitch-primary text-lg">03</span> Confirm System Manifest</li>
             </ol>
             
-            <button id="btn-close-modal" class="w-full bg-slate-700 hover:bg-slate-600 text-white font-bold py-4 rounded-xl transition-all hover:-translate-y-0.5 shadow-md">
-                Schließen
+            <button id="btn-close-modal" class="w-full bg-stitch-surface-highest hover:bg-white/10 text-white font-black py-5 rounded-stitch transition-all uppercase tracking-widest text-xs border border-stitch-outline/20">
+                Abort Command
             </button>
         </div>
     </div>
@@ -203,6 +276,6 @@
     </script>
     
     <!-- Lade unsere neue Javascript-Logik (inkl. Counter-Magic) -->
-    <script src="app.js?v=9"></script>
+    <script src="app.js?v=20"></script>
 </body>
 </html>

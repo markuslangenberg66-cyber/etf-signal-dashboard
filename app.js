@@ -1,5 +1,4 @@
-// ============================================================
-// ETF SIGNAL DASHBOARD — app.js (DARK FINTECH MAGIC EDITION)
+// ETF SIGNAL DASHBOARD — app.js (STITCH TECHNICAL LEDGER EDITION)
 // 
 // Vibe Coder Info:
 // Dieses Skript kümmert sich um das Laden der Daten und das
@@ -67,17 +66,178 @@ function animateValue(obj, targetValue, isDecimal = false) {
     }, duration / steps);
 }
 
-// ── Daten laden (data.json) ─────────────────────────────────
-async function loadData() {
-    // ?t=Timestamp zwingt den Browser, nicht auf alte gespeicherte Werte zurückzugreifen
-    const url = './data.json?t=' + Date.now(); 
-    const res = await fetch(url, {
-        cache: 'no-store',
-        headers: { 'Cache-Control': 'no-cache' }
-    });
-    if (!res.ok) throw new Error(`data.json Fehler: ${res.status}`);
-    return await res.json();
+// ── CORS-Proxy Helfer ───────────────────────────────────────
+// Browser können keine Daten von externen APIs laden, weil die
+// Browser-Sicherheit (CORS) das blockiert. Wir nutzen mehrere
+// Proxy-Dienste als Vermittler (Fallback-Kette).
+const CORS_PROXIES = [
+    'https://corsproxy.io/?url=',
+    'https://api.allorigins.win/raw?url=',
+];
+
+async function fetchWithProxy(url, timeout = 25000) {
+    for (const proxy of CORS_PROXIES) {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), timeout);
+        try {
+            const res = await fetch(proxy + encodeURIComponent(url), {
+                signal: controller.signal,
+                cache: 'no-store'
+            });
+            clearTimeout(timer);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            return res;
+        } catch(e) {
+            clearTimeout(timer);
+            console.warn(`Proxy ${proxy} fehlgeschlagen:`, e.message);
+            // Nächsten Proxy versuchen
+        }
+    }
+    throw new Error('Alle CORS-Proxies fehlgeschlagen');
 }
+
+// ── LIVE-API: VIX von Yahoo Finance (Spark = leichtgewichtig!) ──
+async function fetchVIX() {
+    // Versuch 1: Yahoo Finance Spark (ganz kleine Response, nur aktueller Preis)
+    try {
+        const url = 'https://query1.finance.yahoo.com/v8/finance/chart/%5EVIX?range=5d&interval=1d';
+        const res = await fetchWithProxy(url);
+        const data = await res.json();
+        const meta = data.chart.result[0].meta;
+        const vix = parseFloat(meta.regularMarketPrice || meta.previousClose);
+        if (vix > 0) {
+            console.log('[VIX] Yahoo Wert:', vix);
+            return vix;
+        }
+    } catch(e) {
+        console.warn('VIX Yahoo Fehler:', e.message);
+    }
+
+    // Versuch 2: CBOE Delayed Quotes (einzelner aktueller Wert)
+    try {
+        const url = 'https://cdn.cboe.com/api/global/delayed_quotes/charts/_VIX.json';
+        const res = await fetchWithProxy(url);
+        const data = await res.json();
+        const vix = parseFloat(data.data.close || data.data[data.data.length - 1].close);
+        console.log('[VIX] CBOE Wert:', vix);
+        return vix;
+    } catch(e) {
+        console.warn('VIX CBOE Fehler:', e.message);
+    }
+
+    return null;
+}
+
+// ── LIVE-API: FTSE/VWCE Kurs & SMA200 ──────────────────────
+async function fetchFTSE() {
+    // Versuch 1: Yahoo Finance (VWCE.DE, 1 Jahr für SMA200-Berechnung)
+    try {
+        const url = 'https://query1.finance.yahoo.com/v8/finance/chart/VWCE.DE?range=1y&interval=1d';
+        const res = await fetchWithProxy(url);
+        const data = await res.json();
+        const result = data.chart.result[0];
+        const closes = result.indicators.quote[0].close.filter(v => v !== null);
+        
+        if (closes.length < 10) throw new Error('Zu wenige Datenpunkte');
+        
+        const price = closes[closes.length - 1];
+        const last200 = closes.slice(-200);
+        const sma200 = last200.reduce((a, b) => a + b, 0) / last200.length;
+        console.log('[FTSE] Yahoo Wert:', price, 'SMA200:', sma200);
+        return { price: Math.round(price * 100) / 100, sma200: Math.round(sma200 * 10000) / 10000 };
+    } catch(e) {
+        console.warn('FTSE Yahoo Fehler:', e.message);
+    }
+
+    // Versuch 2: Stooq CSV
+    try {
+        const url = 'https://stooq.com/q/d/l/?s=vwce.de&i=d';
+        const res = await fetchWithProxy(url);
+        const raw = await res.text();
+        const lines = raw.trim().split('\n');
+        const dataRows = lines.slice(1).filter(l => l.trim().length > 0);
+        const closes = dataRows.map(row => {
+            const cols = row.split(',');
+            return parseFloat(cols[4]);
+        }).filter(v => !isNaN(v));
+
+        if (closes.length === 0) throw new Error('Keine Kursdaten');
+
+        const price = closes[closes.length - 1];
+        const last200 = closes.slice(-200);
+        const sma200 = last200.reduce((a, b) => a + b, 0) / last200.length;
+        console.log('[FTSE] Stooq Wert:', price, 'SMA200:', sma200);
+        return { price: price, sma200: Math.round(sma200 * 10000) / 10000 };
+    } catch(e) {
+        console.warn('FTSE Stooq Fehler:', e.message);
+    }
+
+    return null;
+}
+
+
+// ── LIVE-API: Fear & Greed Index ────────────────────────────
+async function fetchFearGreed() {
+    // Versuch 1: alternative.me (CORS nativ unterstützt!)
+    try {
+        const url = 'https://api.alternative.me/fng/?limit=1&format=json';
+        const res = await fetch(url, { cache: 'no-store' });
+        const data = await res.json();
+        const fng = parseFloat(data.data[0].value);
+        console.log('[F&G] alternative.me Wert:', fng);
+        return fng;
+    } catch(e) {
+        console.warn('F&G alternative.me Fehler:', e.message);
+    }
+
+    // Versuch 2: CNN Fear & Greed (via Proxy)
+    try {
+        const url = 'https://production.dataviz.cnn.io/index/fearandgreed/graphdata';
+        const res = await fetchWithProxy(url);
+        const data = await res.json();
+        const fng = parseFloat(data.fear_and_greed.score);
+        console.log('[F&G] CNN Wert:', fng);
+        return fng;
+    } catch(e) {
+        console.warn('F&G CNN Fehler:', e.message);
+    }
+
+    return null;
+}
+
+// ── Daten laden: LIVE-APIs + intelligentes Mischen mit Fallback ──
+async function loadData() {
+    console.log('[Dashboard] Starte Live-Datenabfrage...');
+    
+    // Alle drei APIs gleichzeitig abfragen (parallel = schneller)
+    const [vix, ftse, fng] = await Promise.all([
+        fetchVIX(),
+        fetchFTSE(),
+        fetchFearGreed()
+    ]);
+
+    console.log('[Dashboard] Live-Ergebnis:', { vix, ftse, fng });
+
+    // Fallback: Lade data.json für fehlende Werte
+    let fallback = {};
+    try {
+        const url = './data.json?t=' + Date.now();
+        const res = await fetch(url, { cache: 'no-store' });
+        if (res.ok) fallback = await res.json();
+    } catch(e) {
+        console.warn('[Dashboard] data.json Fallback nicht verfügbar');
+    }
+
+    // Intelligentes Mischen: Live-Daten haben Priorität, Fallback füllt Lücken
+    return {
+        timestamp: new Date().toISOString(),
+        vix: vix ?? fallback.vix ?? null,
+        ftse_price: ftse ? ftse.price : (fallback.ftse_price ?? null),
+        sma200: ftse ? ftse.sma200 : (fallback.sma200 ?? null),
+        fng: fng ?? fallback.fng ?? null
+    };
+}
+
 
 // ── Benutzeroberfläche (UI) befüllen und färben ─────────────
 function updateUI() {
@@ -85,17 +245,17 @@ function updateUI() {
     // ---- 1. VIX KARTE ----
     if (state.vix.value !== null) {
         animateValue(el.valVix, state.vix.value, true); 
-        el.badgeVix.innerText = state.vix.ok ? 'OK' : 'ZU NIEDRIG';
+        el.badgeVix.innerText = state.vix.ok ? 'OPTIMAL' : 'LOW LIQUIDITY';
         
-        // Tailwind Klassen umschreiben für rotes/grünes Leuchten
+        // Stitch Design System: Status Coloring
         if(state.vix.ok) {
-            // Grüner Leucht-Zustand (Dark Fintech Magic)
-            el.badgeVix.className = 'text-[10px] uppercase font-bold tracking-wider px-2 py-1 rounded-full bg-fintech-accent/20 text-fintech-accent border border-fintech-accent/50 shadow-[0_0_10px_rgba(16,185,129,0.3)] transition-all';
-            el.progressVix.className = 'h-full bg-fintech-accent transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(16,185,129,0.8)]'; 
+            // Primary Buy Signal (#46f1c5)
+            el.badgeVix.className = 'label-sm px-2 py-0.5 rounded-sm bg-stitch-primary/10 text-stitch-primary border border-stitch-primary/30 shadow-[0_0_15px_rgba(70,241,197,0.2)] transition-all';
+            el.progressVix.className = 'h-full bg-stitch-primary transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(70,241,197,0.5)]'; 
         } else {
-            // Roter "Gefahr"-Zustand
-            el.badgeVix.className = 'text-[10px] uppercase font-bold tracking-wider px-2 py-1 rounded-full bg-red-500/10 text-red-500 border border-red-500/30 transition-all';
-            el.progressVix.className = 'h-full bg-red-500 transition-all duration-1000 ease-out';
+            // Tertiary Risk Signal (#ffcbc6)
+            el.badgeVix.className = 'label-sm px-2 py-0.5 rounded-sm bg-stitch-tertiary/10 text-stitch-tertiary border border-stitch-tertiary/20 transition-all';
+            el.progressVix.className = 'h-full bg-stitch-outline/30 transition-all duration-1000 ease-out';
         }
         
         // Balken berechnen und animieren
@@ -108,25 +268,25 @@ function updateUI() {
         animateValue(el.valPrice, state.ftse.price, true);
         animateValue(el.valSma, state.ftse.sma200, true);
         
-        el.badgeTrend.innerText = state.ftse.ok ? 'ERFÜLLT' : 'ZU TEUER';
+        el.badgeTrend.innerText = state.ftse.ok ? 'BULLISH' : 'OVERVALUED';
         if(state.ftse.ok) {
-            el.badgeTrend.className = 'text-[10px] uppercase font-bold tracking-wider px-2 py-1 rounded-full bg-fintech-accent/20 text-fintech-accent border border-fintech-accent/50 shadow-[0_0_10px_rgba(16,185,129,0.3)] transition-all';
+            el.badgeTrend.className = 'label-sm px-2 py-0.5 rounded-sm bg-stitch-primary/10 text-stitch-primary border border-stitch-primary/30 shadow-[0_0_15px_rgba(70,241,197,0.2)] transition-all';
         } else {
-            el.badgeTrend.className = 'text-[10px] uppercase font-bold tracking-wider px-2 py-1 rounded-full bg-red-500/10 text-red-500 border border-red-500/30 transition-all';
+            el.badgeTrend.className = 'label-sm px-2 py-0.5 rounded-sm bg-stitch-tertiary/10 text-stitch-tertiary border border-stitch-tertiary/20 transition-all';
         }
     }
 
     // ---- 3. SENTIMENT (Fear & Greed) KARTE ----
     if (state.fng.value !== null) {
         animateValue(el.valFng, state.fng.value, false);
-        el.badgeSentiment.innerText = state.fng.ok ? 'PANIK' : 'NORMAL';
+        el.badgeSentiment.innerText = state.fng.ok ? 'EXTREME FEAR' : 'GREED/NEUTRAL';
         
         if(state.fng.ok) {
-            el.badgeSentiment.className = 'text-[10px] uppercase font-bold tracking-wider px-2 py-1 rounded-full bg-fintech-accent/20 text-fintech-accent border border-fintech-accent/50 shadow-[0_0_10px_rgba(16,185,129,0.3)] transition-all';
-            el.progressFng.className = 'h-full bg-fintech-accent transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(16,185,129,0.8)]'; 
+            el.badgeSentiment.className = 'label-sm px-2 py-0.5 rounded-sm bg-stitch-primary/10 text-stitch-primary border border-stitch-primary/30 shadow-[0_0_15px_rgba(70,241,197,0.2)] transition-all';
+            el.progressFng.className = 'h-full bg-stitch-primary transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(70,241,197,0.5)]'; 
         } else {
-            el.badgeSentiment.className = 'text-[10px] uppercase font-bold tracking-wider px-2 py-1 rounded-full bg-red-500/10 text-red-500 border border-red-500/30 transition-all';
-            el.progressFng.className = 'h-full bg-red-500 transition-all duration-1000 ease-out';
+            el.badgeSentiment.className = 'label-sm px-2 py-0.5 rounded-sm bg-stitch-tertiary/10 text-stitch-tertiary border border-stitch-tertiary/20 transition-all';
+            el.progressFng.className = 'h-full bg-stitch-outline/30 transition-all duration-1000 ease-out';
         }
         
         // Da der FNG-Balken von rechts nach links füllt, weil niedrige Werte gut sind:
@@ -139,24 +299,24 @@ function updateUI() {
 
     if (allOk) {
         el.globalIcon.innerText = '🚀';
-        el.globalText.innerText = 'KAUFSIGNAL AKTIV!';
+        el.globalText.innerText = 'BUY SIGNAL ACTIVE';
         
-        // Richtig magisches Leuchten auf dem Text und Rand, wenn alles perfekt ist!
-        el.globalText.className = 'text-2xl font-black text-fintech-accent drop-shadow-[0_0_10px_rgba(16,185,129,0.5)] transition-all';
-        if (subtextEl) subtextEl.innerText = 'Bedingungen sind optimal. Einstieg prüfen.';
+        // Stitch Primary Style for positive signal
+        el.globalText.className = 'display-lg text-stitch-primary drop-shadow-[0_0_20px_rgba(70,241,197,0.3)] transition-all';
+        if (subtextEl) subtextEl.innerText = 'All entry protocols satisfied. Initiate position.';
         
-        el.globalStatus.classList.remove('border-slate-700/50');
-        el.globalStatus.classList.add('border-fintech-accent', 'shadow-[0_0_30px_rgba(16,185,129,0.3)]');
+        el.globalStatus.classList.remove('border-stitch-outline/20');
+        el.globalStatus.classList.add('border-stitch-primary', 'shadow-[0_0_40px_rgba(70,241,197,0.1)]');
         
         sendNotification(); // Push an den User generieren
     } else {
         el.globalIcon.innerText = '⏳';
-        el.globalText.innerText = 'Warten auf Signal...';
-        el.globalText.className = 'text-xl font-bold text-white transition-all';
-        if (subtextEl) subtextEl.innerText = 'Bedingungen noch nicht vollständig erfüllt.';
+        el.globalText.innerText = 'NO SIGNAL';
+        el.globalText.className = 'display-lg text-white transition-all';
+        if (subtextEl) subtextEl.innerText = 'Incomplete market alignment. Standby for updates.';
         
-        el.globalStatus.classList.add('border-slate-700/50');
-        el.globalStatus.classList.remove('border-fintech-accent', 'shadow-[0_0_30px_rgba(16,185,129,0.3)]');
+        el.globalStatus.classList.add('border-stitch-outline/20');
+        el.globalStatus.classList.remove('border-stitch-primary', 'shadow-[0_0_40px_rgba(70,241,197,0.1)]');
     }
 
     // Aktualisierungszeit ganz oben
@@ -192,7 +352,7 @@ function checkNotificationPermission() {
 
 // ── STARTPUNKT DER APP ──────────────────────────────────────
 async function refreshData() {
-    el.updateTime.innerText = 'Lade Werte...';
+    el.updateTime.innerText = 'Live-Daten laden...';
     try {
         const d = await loadData();
 
@@ -215,7 +375,7 @@ async function refreshData() {
         }
     } catch (e) {
         console.error('Fehler beim Laden:', e);
-        el.updateTime.innerText = 'Ladefehler';
+        el.updateTime.innerText = 'API-Fehler – Neuladen...';
     }
     
     // UI neu zeichnen und Effekte abspielen

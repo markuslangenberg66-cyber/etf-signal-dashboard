@@ -249,7 +249,7 @@ function updateUI() {
         el.globalStatus.classList.add('border-stitch-primary', 'shadow-[0_0_40px_rgba(70,241,197,0.1)]');
         sendNotification();
     } else {
-        el.globalIcon.innerText = '⏳';
+        el.globalIcon.innerText = '⛔';
         el.globalText.innerText = 'NO SIGNAL';
         el.globalText.className = 'display-lg text-white transition-all';
         if (subtextEl) subtextEl.innerText = 'Incomplete market alignment. Standby for updates.';

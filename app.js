@@ -176,30 +176,33 @@ async function fetchFTSE() {
 }
 
 
-// ── LIVE-API: Fear & Greed Index ────────────────────────────
+// ── LIVE-API: Fear & Greed Index (CNN = Aktienmarkt!) ───────
+// WICHTIG: alternative.me misst den KRYPTO F&G Index (falsch!).
+// Der korrekte Wert ist der CNN Fear & Greed für den Aktienmarkt.
 async function fetchFearGreed() {
-    // Versuch 1: alternative.me (CORS nativ unterstützt!)
-    try {
-        const url = 'https://api.alternative.me/fng/?limit=1&format=json';
-        const res = await fetch(url, { cache: 'no-store' });
-        const data = await res.json();
-        const fng = parseFloat(data.data[0].value);
-        console.log('[F&G] alternative.me Wert:', fng);
-        return fng;
-    } catch(e) {
-        console.warn('F&G alternative.me Fehler:', e.message);
-    }
-
-    // Versuch 2: CNN Fear & Greed (via Proxy)
+    // Versuch 1: CNN Fear & Greed (Aktienmarkt-Index = korrekte Quelle!)
     try {
         const url = 'https://production.dataviz.cnn.io/index/fearandgreed/graphdata';
         const res = await fetchWithProxy(url);
         const data = await res.json();
         const fng = parseFloat(data.fear_and_greed.score);
-        console.log('[F&G] CNN Wert:', fng);
+        console.log('[F&G] CNN Aktienmarkt-Wert:', fng);
         return fng;
     } catch(e) {
         console.warn('F&G CNN Fehler:', e.message);
+    }
+
+    // Versuch 2: alternative.me (Krypto-Index, nur als Notfall-Fallback)
+    // Achtung: Dieser Wert bezieht sich auf Kryptowährungen, nicht auf Aktien!
+    try {
+        const url = 'https://api.alternative.me/fng/?limit=1&format=json';
+        const res = await fetch(url, { cache: 'no-store' });
+        const data = await res.json();
+        const fng = parseFloat(data.data[0].value);
+        console.log('[F&G] alternative.me Krypto-Wert (Fallback):', fng);
+        return fng;
+    } catch(e) {
+        console.warn('F&G alternative.me Fehler:', e.message);
     }
 
     return null;

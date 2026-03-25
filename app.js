@@ -24,7 +24,7 @@ const el = {
     badgeSentiment:   document.getElementById('badge-sentiment'),
     progressFng:      document.getElementById('progress-fng'),
     btnNotif:         document.getElementById('enable-notifications'),
-    // Neue Indikatoren
+    // Tier 2: Zusatz-Indikatoren
     valCross:         document.getElementById('val-cross'),
     badgeCross:       document.getElementById('badge-cross'),
     txtCrossExpl:     document.getElementById('txt-cross-expl'),
@@ -34,6 +34,19 @@ const el = {
     valTreasury:      document.getElementById('val-treasury'),
     badgeTreasury:    document.getElementById('badge-treasury'),
     txtTreasuryExpl:  document.getElementById('txt-treasury-expl'),
+    // Tier 3: Bewertungsindikatoren
+    valCape:          document.getElementById('val-cape'),
+    badgeCape:        document.getElementById('badge-cape'),
+    txtCapeExpl:      document.getElementById('txt-cape-expl'),
+    valBuffett:       document.getElementById('val-buffett'),
+    badgeBuffett:     document.getElementById('badge-buffett'),
+    txtBuffettExpl:   document.getElementById('txt-buffett-expl'),
+    valPcr:           document.getElementById('val-pcr'),
+    badgePcr:         document.getElementById('badge-pcr'),
+    txtPcrExpl:       document.getElementById('txt-pcr-expl'),
+    valMarginDebt:    document.getElementById('val-margin-debt'),
+    badgeMarginDebt:  document.getElementById('badge-margin-debt'),
+    txtMarginDebtExpl:document.getElementById('txt-margin-debt-expl'),
 };
 
 // Der "Zustand" (State) der App. Wenn wir Daten aus dem Internet holen,
@@ -42,9 +55,13 @@ let state = {
     vix:        { value: null, ok: false },
     ftse:       { price: null, sma200: null, sma50: null, ok: false },
     fng:        { value: null, ok: false },
-    cross:      { value: null, isgolden: null },   // Golden/Death Cross
-    smaDist:    { value: null },                    // % Abstand SMA200
-    treasury:   { value: null },                    // 10J US-Anleihe
+    cross:      { value: null, isgolden: null },
+    smaDist:    { value: null },
+    treasury:   { value: null },
+    cape:       { value: null },        // CAPE / Shiller P/E
+    buffett:    { value: null },        // Buffett-Indikator (MarketCap/BIP %)
+    pcr:        { value: null },        // Put/Call Ratio
+    marginDebt: { value: null },        // Margin Debt in Mrd. USD (monatlich)
     lastUpdated: null
 };
 
@@ -168,22 +185,99 @@ async function fetchTreasuryYield() {
     console.log('[Treasury] 10J-Rendite:', yield10y);
     return yield10y;
 }
+// ── LIVE-API: CAPE Ratio / Shiller P/E (multpl.com) ──────────
+// Einzige Quelle: multpl.com Scraping. Kein Fallback.
+// Hinweis: Monatlich aktualisiert (keine Echtzeit).
+async function fetchCapeRatio() {
+    const url = 'https://www.multpl.com/shiller-pe';
+    const res = await fetchWithProxy(url);
+    const html = await res.text();
+    // Suche nach dem aktuellen Wert in der Seite (typisch: <div id="current">35.7</div>)
+    const match = html.match(/id=["']current["'][^>]*>\s*([0-9]+\.?[0-9]*)/);
+    if (!match) throw new Error('CAPE: Wert nicht auf multpl.com gefunden');
+    const val = parseFloat(match[1]);
+    if (isNaN(val) || val <= 0) throw new Error('CAPE: Ungültiger Wert: ' + match[1]);
+    console.log('[CAPE] Shiller P/E:', val);
+    return val;
+}
 
+// ── LIVE-API: Buffett-Indikator / MarketCap-zu-BIP (multpl.com) ─
+// Einzige Quelle: multpl.com Scraping. Kein Fallback.
+// Hinweis: Quartalsweise aktualisiert.
+async function fetchBuffettIndicator() {
+    const url = 'https://www.multpl.com/market-cap-gdp';
+    const res = await fetchWithProxy(url);
+    const html = await res.text();
+    const match = html.match(/id=["']current["'][^>]*>\s*([0-9]+\.?[0-9]*)\s*%/);
+    if (!match) throw new Error('Buffett: Wert nicht auf multpl.com gefunden');
+    const val = parseFloat(match[1]);
+    if (isNaN(val) || val <= 0) throw new Error('Buffett: Ungültiger Wert: ' + match[1]);
+    console.log('[Buffett] Indikator:', val, '%');
+    return val;
+}
 
-// ── Daten laden: NUR LIVE – kein Fallback ───────────────────
+// ── LIVE-API: Put/Call Ratio Equity (CBOE JSON) ───────────
+// Einzige Quelle: CBOE CDN. Kein Fallback.
+async function fetchPutCallRatio() {
+    const url = 'https://cdn.cboe.com/api/global/delayed_quotes/charts/options/_EQUITY_PC.json';
+    const res = await fetchWithProxy(url);
+    const data = await res.json();
+    const entries = data.data;
+    if (!entries || entries.length === 0) throw new Error('Put/Call: Keine Daten von CBOE');
+    const latest = entries[entries.length - 1];
+    const pcr = parseFloat(Array.isArray(latest) ? latest[1] : latest.pcRatio || latest.value);
+    if (isNaN(pcr) || pcr <= 0) throw new Error('Put/Call: Ungültiger Wert');
+    console.log('[Put/Call] CBOE Equity PCR:', pcr);
+    return pcr;
+}
+
+// ── LIVE-API: Margin Debt (FINRA HTML-Scraping) ────────────
+// Einzige Quelle: FINRA Margin Statistics. Kein Fallback.
+// Hinweis: Monatlich aktualisiert. Wert in Millionen USD.
+async function fetchMarginDebt() {
+    const url = 'https://www.finra.org/investors/learn-to-invest/advanced-investing/margin-statistics';
+    const res = await fetchWithProxy(url);
+    const html = await res.text();
+    // Suche nach einer großen Zahl (mindestens 6 Ziffern) in der Debittabelle
+    // Typisch: 756,123 oder 756123 (in Millionen USD)
+    const patterns = [
+        /Debit[^<]{0,200}?([4-9]\d{2},\d{3})/si,
+        /([4-9]\d{2},\d{3})(?=.*million|.*USD|.*\$)/si,
+        /<td[^>]*>\s*([4-9]\d{2},\d{3})\s*<\/td>/i
+    ];
+    for (const pattern of patterns) {
+        const match = html.match(pattern);
+        if (match) {
+            const val = parseFloat(match[1].replace(/,/g, ''));
+            if (!isNaN(val) && val > 100000) {
+                const billions = val / 1000;
+                console.log('[Margin Debt] FINRA:', billions.toFixed(1), 'Mrd. USD');
+                return billions; // Rückgabe in Milliarden USD
+            }
+        }
+    }
+    throw new Error('Margin Debt: Daten konnten nicht aus FINRA-Seite extrahiert werden');
+}
+
 // Wenn eine API nicht erreichbar ist, bleibt der Wert null.
 // Die UI zeigt dann eine klare Fehlermeldung statt alter Daten.
 async function loadData() {
     console.log('[Dashboard] Starte Live-Datenabfrage...');
 
-    const [vixResult, ftseResult, fngResult, treasuryResult] = await Promise.all([
-        fetchVIX().catch(e           => { console.error('[VIX] FEHLER:', e.message);      return null; }),
-        fetchFTSE().catch(e          => { console.error('[FTSE] FEHLER:', e.message);     return null; }),
-        fetchFearGreed().catch(e     => { console.error('[F&G] FEHLER:', e.message);      return null; }),
-        fetchTreasuryYield().catch(e => { console.error('[TNX] FEHLER:', e.message);      return null; })
+    const [vixResult, ftseResult, fngResult, treasuryResult,
+           capeResult, buffettResult, pcrResult, marginDebtResult] = await Promise.all([
+        fetchVIX().catch(e             => { console.error('[VIX] FEHLER:', e.message);         return null; }),
+        fetchFTSE().catch(e            => { console.error('[FTSE] FEHLER:', e.message);        return null; }),
+        fetchFearGreed().catch(e       => { console.error('[F&G] FEHLER:', e.message);         return null; }),
+        fetchTreasuryYield().catch(e   => { console.error('[TNX] FEHLER:', e.message);         return null; }),
+        fetchCapeRatio().catch(e       => { console.error('[CAPE] FEHLER:', e.message);        return null; }),
+        fetchBuffettIndicator().catch(e=> { console.error('[Buffett] FEHLER:', e.message);     return null; }),
+        fetchPutCallRatio().catch(e    => { console.error('[Put/Call] FEHLER:', e.message);    return null; }),
+        fetchMarginDebt().catch(e      => { console.error('[MarginDebt] FEHLER:', e.message);  return null; })
     ]);
 
-    console.log('[Dashboard] Live-Ergebnis:', { vix: vixResult, ftse: ftseResult, fng: fngResult, treasury: treasuryResult });
+    console.log('[Dashboard] Live-Ergebnis:', { vix: vixResult, ftse: ftseResult, fng: fngResult,
+        treasury: treasuryResult, cape: capeResult, buffett: buffettResult, pcr: pcrResult, marginDebt: marginDebtResult });
 
     return {
         timestamp:   new Date().toISOString(),
@@ -192,7 +286,11 @@ async function loadData() {
         sma200:      ftseResult ? ftseResult.sma200  : null,
         sma50:       ftseResult ? ftseResult.sma50   : null,
         fng:         fngResult,
-        treasury:    treasuryResult
+        treasury:    treasuryResult,
+        cape:        capeResult,
+        buffett:     buffettResult,
+        pcr:         pcrResult,
+        marginDebt:  marginDebtResult
     };
 }
 
@@ -350,6 +448,126 @@ function updateUI() {
         if (el.txtTreasuryExpl) el.txtTreasuryExpl.innerText = 'Keine Daten verfügbar.';
     }
 
+    // ---- 8. CAPE RATIO / SHILLER P/E ----
+    if (el.valCape && state.cape.value !== null) {
+        const cape = state.cape.value;
+        el.valCape.innerText = fmt(cape, 1);
+        let badge, expl, cls;
+        if (cape < 15) {
+            badge = 'HISTORISCH GÜNSTIG'; cls = 'bg-stitch-primary/10 text-stitch-primary border-stitch-primary/30';
+            expl = `CAPE ${fmt(cape,1)} – Deutlich unter dem historischen Schnitt (~17). Seltene Kaufgelegenheit.`;
+        } else if (cape < 22) {
+            badge = 'FAIR BEWERTET'; cls = 'bg-stitch-outline/30 text-stitch-on-surface border-stitch-outline/30';
+            expl = `CAPE ${fmt(cape,1)} – Im Bereich des historischen Durchschnitts. Faire Bewertung des Marktes.`;
+        } else if (cape < 28) {
+            badge = 'LEICHT ERHÖHT'; cls = 'bg-stitch-secondary/10 text-stitch-secondary border-stitch-secondary/30';
+            expl = `CAPE ${fmt(cape,1)} – Leicht über dem Schnitt. Aktien sind nicht billig, aber noch vertretbar.`;
+        } else if (cape < 35) {
+            badge = 'TEUER'; cls = 'bg-stitch-tertiary/10 text-stitch-tertiary border-stitch-tertiary/20';
+            expl = `CAPE ${fmt(cape,1)} – Deutlich über dem Schnitt. Höheres Rückschlagrisiko, langfristig vorsichtig.`;
+        } else {
+            badge = 'HISTORISCH TEUER'; cls = 'bg-stitch-error/10 text-stitch-error border-stitch-error/30';
+            expl = `CAPE ${fmt(cape,1)} – Extrem hoch! Nur in Dotcom-Blase und 2021 so teuer. Erhebliches Rückschlagpotential.`;
+        }
+        el.badgeCape.innerText = badge;
+        el.badgeCape.className = `label-sm px-2 py-0.5 rounded-sm border transition-all ${cls}`;
+        if (el.txtCapeExpl) el.txtCapeExpl.innerText = expl;
+    } else if (el.valCape) {
+        el.valCape.innerText = '--'; el.badgeCape.innerText = 'API ERROR';
+        el.badgeCape.className = errorBadge;
+        if (el.txtCapeExpl) el.txtCapeExpl.innerText = 'Daten von multpl.com nicht verfügbar.';
+    }
+
+    // ---- 9. BUFFETT-INDIKATOR ----
+    if (el.valBuffett && state.buffett.value !== null) {
+        const b = state.buffett.value;
+        el.valBuffett.innerText = fmt(b, 0) + '%';
+        let badge, expl, cls;
+        if (b < 75) {
+            badge = 'UNTERBEWERTET'; cls = 'bg-stitch-primary/10 text-stitch-primary border-stitch-primary/30';
+            expl = `${fmt(b,0)}% – Markt klar unterbewertet (Buffetts Empfehlung: kaufen). Selten gute Gelegenheit.`;
+        } else if (b < 100) {
+            badge = 'FAIR BEWERTET'; cls = 'bg-stitch-outline/30 text-stitch-on-surface border-stitch-outline/30';
+            expl = `${fmt(b,0)}% – Faire Bewertung. Buffett sieht hier neutrales Terrain für Investitionen.`;
+        } else if (b < 125) {
+            badge = 'LEICHT ÜBERBEWERTET'; cls = 'bg-stitch-secondary/10 text-stitch-secondary border-stitch-secondary/30';
+            expl = `${fmt(b,0)}% – Etwas über fair value. Buffett ist in diesem Bereich vorsichtig.`;
+        } else if (b < 150) {
+            badge = 'ÜBERBEWERTET'; cls = 'bg-stitch-tertiary/10 text-stitch-tertiary border-stitch-tertiary/20';
+            expl = `${fmt(b,0)}% – Deutlich überbewertet. Buffett hält Cash, kauft kaum noch Aktien.`;
+        } else {
+            badge = 'EXTREM ÜBERBEWERTET'; cls = 'bg-stitch-error/10 text-stitch-error border-stitch-error/30';
+            expl = `${fmt(b,0)}% – Historisch extrem! Buffett warnte ab 135%+ vor Markteinbruch. Große Vorsicht.`;
+        }
+        el.badgeBuffett.innerText = badge;
+        el.badgeBuffett.className = `label-sm px-2 py-0.5 rounded-sm border transition-all ${cls}`;
+        if (el.txtBuffettExpl) el.txtBuffettExpl.innerText = expl;
+    } else if (el.valBuffett) {
+        el.valBuffett.innerText = '--'; el.badgeBuffett.innerText = 'API ERROR';
+        el.badgeBuffett.className = errorBadge;
+        if (el.txtBuffettExpl) el.txtBuffettExpl.innerText = 'Daten von multpl.com nicht verfügbar.';
+    }
+
+    // ---- 10. PUT/CALL RATIO ----
+    if (el.valPcr && state.pcr.value !== null) {
+        const pcr = state.pcr.value;
+        el.valPcr.innerText = fmt(pcr, 2);
+        let badge, expl, cls;
+        if (pcr < 0.5) {
+            badge = 'EXTREME GIER'; cls = 'bg-stitch-error/10 text-stitch-error border-stitch-error/30';
+            expl = `PCR ${fmt(pcr,2)} – Sehr wenige Absicherungen! Anleger euphorisch. Contrarian: Warnsignal.`;
+        } else if (pcr < 0.7) {
+            badge = 'GIER'; cls = 'bg-stitch-tertiary/10 text-stitch-tertiary border-stitch-tertiary/20';
+            expl = `PCR ${fmt(pcr,2)} – Wenige Puts, viele Calls. Leichte Euphorie. Eher kein Kaufsignal.`;
+        } else if (pcr < 0.9) {
+            badge = 'NEUTRAL'; cls = 'bg-stitch-outline/30 text-stitch-on-surface border-stitch-outline/30';
+            expl = `PCR ${fmt(pcr,2)} – Ausgeglichenes Verhältnis Put/Call. Kein extremes Sentiment.`;
+        } else if (pcr < 1.1) {
+            badge = 'ANGST'; cls = 'bg-stitch-primary/10 text-stitch-primary border-stitch-primary/30';
+            expl = `PCR ${fmt(pcr,2)} – Viele Puts! Anleger sichern sich stark ab. Contrarian: Kaufgelegenheit.`;
+        } else {
+            badge = 'EXTREME ANGST'; cls = 'bg-stitch-primary/10 text-stitch-primary border-stitch-primary/30';
+            expl = `PCR ${fmt(pcr,2)} – Extreme Absicherung! Historisch starkes contrarian Kaufsignal.`;
+        }
+        el.badgePcr.innerText = badge;
+        el.badgePcr.className = `label-sm px-2 py-0.5 rounded-sm border transition-all ${cls}`;
+        if (el.txtPcrExpl) el.txtPcrExpl.innerText = expl;
+    } else if (el.valPcr) {
+        el.valPcr.innerText = '--'; el.badgePcr.innerText = 'API ERROR';
+        el.badgePcr.className = errorBadge;
+        if (el.txtPcrExpl) el.txtPcrExpl.innerText = 'Daten von CBOE nicht verfügbar.';
+    }
+
+    // ---- 11. MARGIN DEBT ----
+    if (el.valMarginDebt && state.marginDebt.value !== null) {
+        const md = state.marginDebt.value; // in Milliarden USD
+        el.valMarginDebt.innerText = '$' + fmt(md, 0) + 'B';
+        let badge, expl, cls;
+        if (md < 500) {
+            badge = 'NIEDRIG'; cls = 'bg-stitch-primary/10 text-stitch-primary border-stitch-primary/30';
+            expl = `$${fmt(md,0)}B – Margin Debt niedrig. Kein Hebel-Exzess im Markt. Gesundes Umfeld.`;
+        } else if (md < 700) {
+            badge = 'MODERAT'; cls = 'bg-stitch-outline/30 text-stitch-on-surface border-stitch-outline/30';
+            expl = `$${fmt(md,0)}B – Normales Niveau. Kreditfinanzierte Käufe halten sich im Rahmen.`;
+        } else if (md < 850) {
+            badge = 'ERHÖHT'; cls = 'bg-stitch-secondary/10 text-stitch-secondary border-stitch-secondary/30';
+            expl = `$${fmt(md,0)}B – Erhöhter Fremdkapitaleinsatz. Rücksetzer können verstärkt werden.`;
+        } else if (md < 1000) {
+            badge = 'HOCH'; cls = 'bg-stitch-tertiary/10 text-stitch-tertiary border-stitch-tertiary/20';
+            expl = `$${fmt(md,0)}B – Hohes Niveau! Droht Deleveraging, können Kurse schnell fallen.`;
+        } else {
+            badge = 'EXTREME ÜBERHITZUNG'; cls = 'bg-stitch-error/10 text-stitch-error border-stitch-error/30';
+            expl = `$${fmt(md,0)}B – Historisches Extrem! 2021 auf Rekordhöhe. Starkes Warnsignal.`;
+        }
+        el.badgeMarginDebt.innerText = badge;
+        el.badgeMarginDebt.className = `label-sm px-2 py-0.5 rounded-sm border transition-all ${cls}`;
+        if (el.txtMarginDebtExpl) el.txtMarginDebtExpl.innerText = expl + ' (monatlich von FINRA)';
+    } else if (el.valMarginDebt) {
+        el.valMarginDebt.innerText = '--'; el.badgeMarginDebt.innerText = 'API ERROR';
+        el.badgeMarginDebt.className = errorBadge;
+        if (el.txtMarginDebtExpl) el.txtMarginDebtExpl.innerText = 'Daten von FINRA nicht verfügbar.';
+    }
+
     // ---- 4. DAS ÜBERGEORDNETE SIGNAL-BANNER ----
     const anyError = state.vix.value === null || state.ftse.price === null || state.fng.value === null;
     const allOk = !anyError && state.vix.ok && state.ftse.ok && state.fng.ok;
@@ -439,9 +657,11 @@ async function refreshData() {
             state.fng.value = d.fng;
             state.fng.ok    = d.fng < FNG_THRESHOLD;
         }
-        if (d.treasury != null) {
-            state.treasury.value = d.treasury;
-        }
+        if (d.treasury != null)    { state.treasury.value   = d.treasury; }
+        if (d.cape != null)        { state.cape.value        = d.cape; }
+        if (d.buffett != null)     { state.buffett.value     = d.buffett; }
+        if (d.pcr != null)         { state.pcr.value         = d.pcr; }
+        if (d.marginDebt != null)  { state.marginDebt.value  = d.marginDebt; }
         if (d.timestamp) {
             state.lastUpdated = new Date(d.timestamp);
         }

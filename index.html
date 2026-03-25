@@ -224,7 +224,55 @@
                 </div>
             </div>
 
+        </div><!-- Ende Primärsignal-Grid -->
+
+        <!-- ── ZUSATZ-INDIKATOREN ──────────────────────────────── -->
+        <div class="mt-2">
+            <div class="label-sm opacity-40 mb-3 px-1">Zusatz-Indikatoren (informativ)</div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-8">
+
+                <!-- ======== GOLDEN / DEATH CROSS KARTE ======== -->
+                <div class="bg-stitch-surface/60 rounded-stitch p-5 sm:p-6 shadow-lg ghost-border ghost-border-hover transition-all duration-500 flex flex-col justify-between mobile-card">
+                    <div>
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="label-sm">SMA50 vs. SMA200</div>
+                            <span id="badge-cross" class="label-sm px-2 py-0.5 rounded-sm bg-stitch-surface-highest text-stitch-outline border border-stitch-outline/30 transition-all">Pending</span>
+                        </div>
+                        <div class="display-lg text-white" id="val-cross">--</div>
+                        <div class="label-sm opacity-50 mt-1">CROSS SIGNAL</div>
+                    </div>
+                    <p id="txt-cross-expl" class="label-sm opacity-60 mt-4 leading-relaxed normal-case tracking-normal text-[11px]">Berechnung läuft...</p>
+                </div>
+
+                <!-- ======== SMA200 ABSTAND % KARTE ======== -->
+                <div class="bg-stitch-surface/60 rounded-stitch p-5 sm:p-6 shadow-lg ghost-border ghost-border-hover transition-all duration-500 flex flex-col justify-between mobile-card">
+                    <div>
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="label-sm">Abstand zum SMA200</div>
+                            <span id="badge-sma-dist" class="label-sm px-2 py-0.5 rounded-sm bg-stitch-surface-highest text-stitch-outline border border-stitch-outline/30 transition-all">Pending</span>
+                        </div>
+                        <div class="display-lg text-white" id="val-sma-dist">--</div>
+                        <div class="label-sm opacity-50 mt-1">% VOM SMA200</div>
+                    </div>
+                    <p id="txt-sma-dist-expl" class="label-sm opacity-60 mt-4 leading-relaxed normal-case tracking-normal text-[11px]">Berechnung läuft...</p>
+                </div>
+
+                <!-- ======== 10J TREASURY YIELD KARTE ======== -->
+                <div class="bg-stitch-surface/60 rounded-stitch p-5 sm:p-6 shadow-lg ghost-border ghost-border-hover transition-all duration-500 flex flex-col justify-between mobile-card">
+                    <div>
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="label-sm">10J US-Anleihenrendite</div>
+                            <span id="badge-treasury" class="label-sm px-2 py-0.5 rounded-sm bg-stitch-surface-highest text-stitch-outline border border-stitch-outline/30 transition-all">Pending</span>
+                        </div>
+                        <div class="display-lg text-white" id="val-treasury">--</div>
+                        <div class="label-sm opacity-50 mt-1">US 10Y TREASURY (^TNX)</div>
+                    </div>
+                    <p id="txt-treasury-expl" class="label-sm opacity-60 mt-4 leading-relaxed normal-case tracking-normal text-[11px]">Daten werden geladen...</p>
+                </div>
+
+            </div>
         </div>
+
 
         <!-- APP INSTALLIEREN BUTTON - Primary Tone -->
         <div class="mt-16 flex justify-center pb-12">

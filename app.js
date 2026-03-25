@@ -10,28 +10,41 @@ const FNG_THRESHOLD = 30;
 
 // Hier greifen wir alle Benutzeroberflächen-Elemente aus unserer neuen HTML ab
 const el = {
-    updateTime:     document.getElementById('last-update'),
-    globalStatus:   document.getElementById('global-status'),
-    globalIcon:     document.getElementById('global-icon'),
-    globalText:     document.getElementById('global-text'),
-    valVix:         document.getElementById('val-vix'),
-    badgeVix:       document.getElementById('badge-vix'),
-    progressVix:    document.getElementById('progress-vix'),
-    valPrice:       document.getElementById('val-price'),
-    valSma:         document.getElementById('val-sma'),
-    badgeTrend:     document.getElementById('badge-trend'),
-    valFng:         document.getElementById('val-fng'),
-    badgeSentiment: document.getElementById('badge-sentiment'),
-    progressFng:    document.getElementById('progress-fng'),
-    btnNotif:       document.getElementById('enable-notifications')
+    updateTime:       document.getElementById('last-update'),
+    globalStatus:     document.getElementById('global-status'),
+    globalIcon:       document.getElementById('global-icon'),
+    globalText:       document.getElementById('global-text'),
+    valVix:           document.getElementById('val-vix'),
+    badgeVix:         document.getElementById('badge-vix'),
+    progressVix:      document.getElementById('progress-vix'),
+    valPrice:         document.getElementById('val-price'),
+    valSma:           document.getElementById('val-sma'),
+    badgeTrend:       document.getElementById('badge-trend'),
+    valFng:           document.getElementById('val-fng'),
+    badgeSentiment:   document.getElementById('badge-sentiment'),
+    progressFng:      document.getElementById('progress-fng'),
+    btnNotif:         document.getElementById('enable-notifications'),
+    // Neue Indikatoren
+    valCross:         document.getElementById('val-cross'),
+    badgeCross:       document.getElementById('badge-cross'),
+    txtCrossExpl:     document.getElementById('txt-cross-expl'),
+    valSmaDist:       document.getElementById('val-sma-dist'),
+    badgeSmaDist:     document.getElementById('badge-sma-dist'),
+    txtSmaDistExpl:   document.getElementById('txt-sma-dist-expl'),
+    valTreasury:      document.getElementById('val-treasury'),
+    badgeTreasury:    document.getElementById('badge-treasury'),
+    txtTreasuryExpl:  document.getElementById('txt-treasury-expl'),
 };
 
 // Der "Zustand" (State) der App. Wenn wir Daten aus dem Internet holen,
 // werden diese hier sicher zwischengespeichert.
 let state = {
-    vix:  { value: null, ok: false },
-    ftse: { price: null, sma200: null, ok: false },
-    fng:  { value: null, ok: false },
+    vix:        { value: null, ok: false },
+    ftse:       { price: null, sma200: null, sma50: null, ok: false },
+    fng:        { value: null, ok: false },
+    cross:      { value: null, isgolden: null },   // Golden/Death Cross
+    smaDist:    { value: null },                    // % Abstand SMA200
+    treasury:   { value: null },                    // 10J US-Anleihe
     lastUpdated: null
 };
 
@@ -109,7 +122,7 @@ async function fetchVIX() {
     return vix;
 }
 
-// ── LIVE-API: FTSE/VWCE Kurs & SMA200 von Yahoo Finance ─────
+// ── LIVE-API: FTSE/VWCE Kurs, SMA200 & SMA50 von Yahoo Finance ─
 // Einzige Quelle: Yahoo Finance. Kein Fallback.
 async function fetchFTSE() {
     const url = 'https://query1.finance.yahoo.com/v8/finance/chart/VWCE.DE?range=1y&interval=1d';
@@ -118,11 +131,17 @@ async function fetchFTSE() {
     const result = data.chart.result[0];
     const closes = result.indicators.quote[0].close.filter(v => v !== null);
     if (closes.length < 10) throw new Error('Zu wenige Datenpunkte von Yahoo');
-    const price = closes[closes.length - 1];
+    const price  = closes[closes.length - 1];
     const last200 = closes.slice(-200);
+    const last50  = closes.slice(-50);
     const sma200 = last200.reduce((a, b) => a + b, 0) / last200.length;
-    console.log('[FTSE] Yahoo Wert:', price, 'SMA200:', sma200);
-    return { price: Math.round(price * 100) / 100, sma200: Math.round(sma200 * 10000) / 10000 };
+    const sma50  = last50.reduce((a, b) => a + b, 0) / last50.length;
+    console.log('[FTSE] Yahoo Wert:', price, 'SMA200:', sma200, 'SMA50:', sma50);
+    return {
+        price:  Math.round(price  * 100)   / 100,
+        sma200: Math.round(sma200 * 10000) / 10000,
+        sma50:  Math.round(sma50  * 10000) / 10000
+    };
 }
 
 // ── LIVE-API: CNN Fear & Greed Index (Aktienmarkt) ──────────
@@ -137,6 +156,19 @@ async function fetchFearGreed() {
     return fng;
 }
 
+// ── LIVE-API: 10-Jährige US-Anleihenrendite (^TNX) ──────────
+// Einzige Quelle: Yahoo Finance. Kein Fallback.
+async function fetchTreasuryYield() {
+    const url = 'https://query1.finance.yahoo.com/v8/finance/chart/%5ETNX?range=5d&interval=1d';
+    const res = await fetchWithProxy(url);
+    const data = await res.json();
+    const meta = data.chart.result[0].meta;
+    const yield10y = parseFloat(meta.regularMarketPrice || meta.previousClose);
+    if (!yield10y || yield10y <= 0) throw new Error('Ungültiger Treasury-Wert');
+    console.log('[Treasury] 10J-Rendite:', yield10y);
+    return yield10y;
+}
+
 
 // ── Daten laden: NUR LIVE – kein Fallback ───────────────────
 // Wenn eine API nicht erreichbar ist, bleibt der Wert null.
@@ -144,23 +176,23 @@ async function fetchFearGreed() {
 async function loadData() {
     console.log('[Dashboard] Starte Live-Datenabfrage...');
 
-    // Alle drei APIs parallel abfragen. Fehler werden abgefangen
-    // und als null zurückgegeben, damit Promise.all nicht abbricht.
-    const [vixResult, ftseResult, fngResult] = await Promise.all([
-        fetchVIX().catch(e => { console.error('[VIX] FEHLER:', e.message); return null; }),
-        fetchFTSE().catch(e => { console.error('[FTSE] FEHLER:', e.message); return null; }),
-        fetchFearGreed().catch(e => { console.error('[F&G] FEHLER:', e.message); return null; })
+    const [vixResult, ftseResult, fngResult, treasuryResult] = await Promise.all([
+        fetchVIX().catch(e           => { console.error('[VIX] FEHLER:', e.message);      return null; }),
+        fetchFTSE().catch(e          => { console.error('[FTSE] FEHLER:', e.message);     return null; }),
+        fetchFearGreed().catch(e     => { console.error('[F&G] FEHLER:', e.message);      return null; }),
+        fetchTreasuryYield().catch(e => { console.error('[TNX] FEHLER:', e.message);      return null; })
     ]);
 
-    console.log('[Dashboard] Live-Ergebnis:', { vix: vixResult, ftse: ftseResult, fng: fngResult });
+    console.log('[Dashboard] Live-Ergebnis:', { vix: vixResult, ftse: ftseResult, fng: fngResult, treasury: treasuryResult });
 
-    // Kein Fallback! Null bleibt null. Die UI zeigt einen Fehler.
     return {
-        timestamp: new Date().toISOString(),
-        vix: vixResult,
-        ftse_price: ftseResult ? ftseResult.price : null,
-        sma200: ftseResult ? ftseResult.sma200 : null,
-        fng: fngResult
+        timestamp:   new Date().toISOString(),
+        vix:         vixResult,
+        ftse_price:  ftseResult ? ftseResult.price  : null,
+        sma200:      ftseResult ? ftseResult.sma200  : null,
+        sma50:       ftseResult ? ftseResult.sma50   : null,
+        fng:         fngResult,
+        treasury:    treasuryResult
     };
 }
 
@@ -225,6 +257,97 @@ function updateUI() {
         el.badgeSentiment.innerText = 'API ERROR';
         el.badgeSentiment.className = errorBadge;
         el.progressFng.style.width = '0%';
+    }
+
+    // ---- 5. GOLDEN / DEATH CROSS ----
+    if (el.valCross && state.cross.value !== null && state.cross.isgolden !== null) {
+        const isGolden = state.cross.isgolden;
+        el.valCross.innerText = isGolden ? 'GOLDEN' : 'DEATH';
+        el.valCross.className = isGolden
+            ? 'display-lg text-stitch-primary'
+            : 'display-lg text-stitch-error';
+        el.badgeCross.innerText = isGolden ? 'BULLISH' : 'BEARISH';
+        el.badgeCross.className = isGolden
+            ? 'label-sm px-2 py-0.5 rounded-sm bg-stitch-primary/10 text-stitch-primary border border-stitch-primary/30 transition-all'
+            : 'label-sm px-2 py-0.5 rounded-sm bg-stitch-error/10 text-stitch-error border border-stitch-error/30 transition-all';
+        el.txtCrossExpl.innerText = isGolden
+            ? `SMA50 (${fmt(state.cross.value)}) liegt ÜBER SMA200 (${fmt(state.ftse.sma200)}) → langfristiger Aufwärtstrend bestätigt.`
+            : `SMA50 (${fmt(state.cross.value)}) liegt UNTER SMA200 (${fmt(state.ftse.sma200)}) → Vorsicht, bearisches Signal.`;
+    } else if (el.valCross) {
+        el.valCross.innerText = '--';
+        el.badgeCross.innerText = 'API ERROR';
+        el.badgeCross.className = errorBadge;
+        if (el.txtCrossExpl) el.txtCrossExpl.innerText = 'Keine Daten verfügbar.';
+    }
+
+    // ---- 6. SMA200 ABSTAND % ----
+    if (el.valSmaDist && state.smaDist.value !== null) {
+        const dist = state.smaDist.value;
+        const distFmt = (dist >= 0 ? '+' : '') + fmt(dist, 1) + '%';
+        el.valSmaDist.innerText = distFmt;
+        let expl = '';
+        if (dist < -10) {
+            el.badgeSmaDist.innerText = 'STARK ÜBERVERKAUFT';
+            el.badgeSmaDist.className = 'label-sm px-2 py-0.5 rounded-sm bg-stitch-primary/10 text-stitch-primary border border-stitch-primary/30 transition-all';
+            expl = `ETF liegt ${Math.abs(dist).toFixed(1)}% unter dem SMA200 – historisch starke Kaufgelegenheit.`;
+        } else if (dist < -5) {
+            el.badgeSmaDist.innerText = 'KAUFZONE';
+            el.badgeSmaDist.className = 'label-sm px-2 py-0.5 rounded-sm bg-stitch-primary/10 text-stitch-primary border border-stitch-primary/30 transition-all';
+            expl = `ETF liegt ${Math.abs(dist).toFixed(1)}% unter dem SMA200 – attraktive Kaufzone.`;
+        } else if (dist < 0) {
+            el.badgeSmaDist.innerText = 'LEICHT DARUNTER';
+            el.badgeSmaDist.className = 'label-sm px-2 py-0.5 rounded-sm bg-stitch-secondary/10 text-stitch-secondary border border-stitch-secondary/30 transition-all';
+            expl = `ETF liegt knapp ${Math.abs(dist).toFixed(1)}% unter dem SMA200 – neutraler Bereich.`;
+        } else if (dist < 5) {
+            el.badgeSmaDist.innerText = 'AM TREND';
+            el.badgeSmaDist.className = 'label-sm px-2 py-0.5 rounded-sm bg-stitch-outline/30 text-stitch-on-surface border border-stitch-outline/30 transition-all';
+            expl = `ETF ist nah am SMA200 (+${dist.toFixed(1)}%) – faire Bewertung, kein Extrembereich.`;
+        } else if (dist < 15) {
+            el.badgeSmaDist.innerText = 'ÜBER TREND';
+            el.badgeSmaDist.className = 'label-sm px-2 py-0.5 rounded-sm bg-stitch-tertiary/10 text-stitch-tertiary border border-stitch-tertiary/20 transition-all';
+            expl = `ETF liegt ${dist.toFixed(1)}% über dem SMA200 – leicht erhöht, kein Kaufsignal.`;
+        } else {
+            el.badgeSmaDist.innerText = 'STARK ÜBERKAUFT';
+            el.badgeSmaDist.className = 'label-sm px-2 py-0.5 rounded-sm bg-stitch-error/10 text-stitch-error border border-stitch-error/30 transition-all';
+            expl = `ETF liegt ${dist.toFixed(1)}% über dem SMA200 – deutlich überkauft, Vorsicht.`;
+        }
+        if (el.txtSmaDistExpl) el.txtSmaDistExpl.innerText = expl;
+    } else if (el.valSmaDist) {
+        el.valSmaDist.innerText = '--';
+        el.badgeSmaDist.innerText = 'API ERROR';
+        el.badgeSmaDist.className = errorBadge;
+        if (el.txtSmaDistExpl) el.txtSmaDistExpl.innerText = 'Keine Daten verfügbar.';
+    }
+
+    // ---- 7. 10J US-TREASURY YIELD ----
+    if (el.valTreasury && state.treasury.value !== null) {
+        const y = state.treasury.value;
+        el.valTreasury.innerText = fmt(y, 2) + '%';
+        let badge = '', expl = '', cls = '';
+        if (y < 3) {
+            badge = 'RÜCKENWIND'; cls = 'bg-stitch-primary/10 text-stitch-primary border-stitch-primary/30';
+            expl = `${y.toFixed(2)}% – Niedrige Zinsen stützen Aktien. Günstige Bedingungen für Investitionen.`;
+        } else if (y < 4) {
+            badge = 'NEUTRAL'; cls = 'bg-stitch-outline/30 text-stitch-on-surface border-stitch-outline/30';
+            expl = `${y.toFixed(2)}% – Moderate Zinsen. Aktien und Anleihen konkurrieren gleichwertig.`;
+        } else if (y < 4.5) {
+            badge = 'LEICHTER GEGENWIND'; cls = 'bg-stitch-secondary/10 text-stitch-secondary border-stitch-secondary/30';
+            expl = `${y.toFixed(2)}% – Erhöhte Zinsen erzeugen Gegenwind, Aktien bleiben dennoch attraktiv.`;
+        } else if (y < 5) {
+            badge = 'GEGENWIND'; cls = 'bg-stitch-tertiary/10 text-stitch-tertiary border-stitch-tertiary/20';
+            expl = `${y.toFixed(2)}% – Deutlicher Zinsgegenwind. Anleihen werden als Alternative attraktiver.`;
+        } else {
+            badge = 'STARKER GEGENWIND'; cls = 'bg-stitch-error/10 text-stitch-error border-stitch-error/30';
+            expl = `${y.toFixed(2)}% – Sehr hohe Zinsen. Signifikanter Gegenwind für Aktien und ETFs.`;
+        }
+        el.badgeTreasury.innerText = badge;
+        el.badgeTreasury.className = `label-sm px-2 py-0.5 rounded-sm border transition-all ${cls}`;
+        if (el.txtTreasuryExpl) el.txtTreasuryExpl.innerText = expl;
+    } else if (el.valTreasury) {
+        el.valTreasury.innerText = '--';
+        el.badgeTreasury.innerText = 'API ERROR';
+        el.badgeTreasury.className = errorBadge;
+        if (el.txtTreasuryExpl) el.txtTreasuryExpl.innerText = 'Keine Daten verfügbar.';
     }
 
     // ---- 4. DAS ÜBERGEORDNETE SIGNAL-BANNER ----
@@ -300,13 +423,24 @@ async function refreshData() {
             state.vix.ok    = d.vix > VIX_THRESHOLD;
         }
         if (d.ftse_price != null && d.sma200 != null) {
-            state.ftse.price = d.ftse_price;
+            state.ftse.price  = d.ftse_price;
             state.ftse.sma200 = d.sma200;
-            state.ftse.ok    = d.ftse_price <= d.sma200;
+            state.ftse.sma50  = d.sma50;
+            state.ftse.ok     = d.ftse_price <= d.sma200;
+
+            // Golden/Death Cross & SMA-Abstand berechnen
+            if (d.sma50 != null) {
+                state.cross.value    = d.sma50;
+                state.cross.isgolden = d.sma50 >= d.sma200;
+                state.smaDist.value  = ((d.ftse_price - d.sma200) / d.sma200) * 100;
+            }
         }
         if (d.fng != null) {
             state.fng.value = d.fng;
             state.fng.ok    = d.fng < FNG_THRESHOLD;
+        }
+        if (d.treasury != null) {
+            state.treasury.value = d.treasury;
         }
         if (d.timestamp) {
             state.lastUpdated = new Date(d.timestamp);

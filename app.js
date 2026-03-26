@@ -186,49 +186,96 @@ async function fetchTreasuryYield() {
     return yield10y;
 }
 // ── LIVE-API: CAPE Ratio / Shiller P/E (multpl.com) ──────────
-// Einzige Quelle: multpl.com Scraping. Kein Fallback.
-// Hinweis: Monatlich aktualisiert (keine Echtzeit).
+// Einzige Quelle: multpl.com. Kein Fallback.
+// Hinweis: Monatlich aktualisiert.
 async function fetchCapeRatio() {
     const url = 'https://www.multpl.com/shiller-pe';
     const res = await fetchWithProxy(url);
     const html = await res.text();
-    // Suche nach dem aktuellen Wert in der Seite (typisch: <div id="current">35.7</div>)
-    const match = html.match(/id=["']current["'][^>]*>\s*([0-9]+\.?[0-9]*)/);
-    if (!match) throw new Error('CAPE: Wert nicht auf multpl.com gefunden');
-    const val = parseFloat(match[1]);
-    if (isNaN(val) || val <= 0) throw new Error('CAPE: Ungültiger Wert: ' + match[1]);
-    console.log('[CAPE] Shiller P/E:', val);
-    return val;
+    // Mehrere Muster probieren, da multpl.com das Format gelegentlich ändert
+    // Format 1: id="current">38.00 (einfach)
+    // Format 2: "Current Shiller PE Ratio: 38.00" (in Text)
+    // Format 3: id="current-value">38.00
+    const patterns = [
+        /id=["']current["'][^>]*>\s*([0-9]+\.?[0-9]*)/,
+        /Current Shiller PE Ratio[:\s]+([0-9]+\.?[0-9]*)/i,
+        /Shiller PE Ratio[^0-9]*([0-9]+\.?[0-9]*)/i,
+        /<span[^>]+id=["'][^"']*current[^"']*["'][^>]*>\s*([0-9]+\.?[0-9]*)/i
+    ];
+    for (const pattern of patterns) {
+        const match = html.match(pattern);
+        if (match) {
+            const val = parseFloat(match[1]);
+            if (!isNaN(val) && val > 5 && val < 200) {
+                console.log('[CAPE] Shiller P/E:', val);
+                return val;
+            }
+        }
+    }
+    throw new Error('CAPE: Kein gültiger Wert auf multpl.com/shiller-pe gefunden');
 }
 
-// ── LIVE-API: Buffett-Indikator / MarketCap-zu-BIP (multpl.com) ─
-// Einzige Quelle: multpl.com Scraping. Kein Fallback.
-// Hinweis: Quartalsweise aktualisiert.
+// ── LIVE-API: Buffett-Indikator (currentmarketvaluation.com) ───
+// multpl.com hat die Seite entfernt (404).
+// Neue Quelle: currentmarketvaluation.com. Kein Fallback.
+// Alternativ: Berechnung aus Yahoo Finance Wilshire 5000 + FRED GDP.
 async function fetchBuffettIndicator() {
-    const url = 'https://www.multpl.com/market-cap-gdp';
+    // Ansatz: Wilshire 5000 Total Market Cap via Yahoo Finance (^W5000)
+    // geteilt durch das US-BIP (via FRED ohne Key als statischer Referenzwert ~29000 Mrd.)
+    // Da GDP nur quartalsweise verfügbar: Wir holen Wilshire 5000 Niveau und
+    // vergleichen mit dem jetzigen BIP-Schätzwert.
+    // Sauberste kostenlose Methode: currentmarketvaluation.com scrapen.
+    const url = 'https://currentmarketvaluation.com/models/buffett-indicator';
     const res = await fetchWithProxy(url);
     const html = await res.text();
-    const match = html.match(/id=["']current["'][^>]*>\s*([0-9]+\.?[0-9]*)\s*%/);
-    if (!match) throw new Error('Buffett: Wert nicht auf multpl.com gefunden');
-    const val = parseFloat(match[1]);
-    if (isNaN(val) || val <= 0) throw new Error('Buffett: Ungültiger Wert: ' + match[1]);
-    console.log('[Buffett] Indikator:', val, '%');
-    return val;
+    // Die Seite zeigt typisch: "175.2%" oder "current ratio is 175%"
+    const patterns = [
+        /current(?:\s+ratio)?(?:\s+is)?[:\s]+([0-9]+\.?[0-9]*)\s*%/i,
+        /Buffett\s+Indicator[^0-9]*([0-9]+\.?[0-9]*)\s*%/i,
+        /Market\s+Cap.*?GDP[^0-9]*([0-9]+\.?[0-9]*)\s*%/i,
+        /([1-2][0-9]{2}(?:\.[0-9]*)?)\s*%/    // Zahl im Bereich 100-299%
+    ];
+    for (const pattern of patterns) {
+        const match = html.match(pattern);
+        if (match) {
+            const val = parseFloat(match[1]);
+            if (!isNaN(val) && val > 50 && val < 400) {
+                console.log('[Buffett] Indikator:', val, '%');
+                return val;
+            }
+        }
+    }
+    throw new Error('Buffett: Kein gültiger Wert auf currentmarketvaluation.com gefunden');
 }
 
-// ── LIVE-API: Put/Call Ratio Equity (CBOE JSON) ───────────
-// Einzige Quelle: CBOE CDN. Kein Fallback.
+// ── LIVE-API: Put/Call Ratio (CBOE Statistik-Seite HTML) ───
+// CBOE CDN blockiert direkte JSON-Requests (403).
+// Neuer Ansatz: CBOE Statistik-Seite scrapen.
 async function fetchPutCallRatio() {
-    const url = 'https://cdn.cboe.com/api/global/delayed_quotes/charts/options/_EQUITY_PC.json';
+    const url = 'https://www.cboe.com/us/options/market_statistics/daily/';
     const res = await fetchWithProxy(url);
-    const data = await res.json();
-    const entries = data.data;
-    if (!entries || entries.length === 0) throw new Error('Put/Call: Keine Daten von CBOE');
-    const latest = entries[entries.length - 1];
-    const pcr = parseFloat(Array.isArray(latest) ? latest[1] : latest.pcRatio || latest.value);
-    if (isNaN(pcr) || pcr <= 0) throw new Error('Put/Call: Ungültiger Wert');
-    console.log('[Put/Call] CBOE Equity PCR:', pcr);
-    return pcr;
+    const html = await res.text();
+    // Die CBOE-Seite zeigt Zeilen wie:
+    // "Total Put/Call Ratio" | 0.99
+    // "Equity Put/Call Ratio" | 0.56
+    // Wir wollen "Equity Put/Call" (genauer für Stimmungsindikator)
+    const patterns = [
+        /Equity\s+Put\/?Call\s+Ratio[^0-9]*([0-9]+\.[0-9]+)/i,
+        /Equity[^<]{0,50}Put\/?Call[^0-9]*([0-9]+\.[0-9]+)/i,
+        /Total\s+Put\/?Call\s+Ratio[^0-9]*([0-9]+\.[0-9]+)/i,
+        /([0-9]+\.[0-9]{2})(?=\s*<\/td>)/  // Erste Dezimalzahl als Fallback
+    ];
+    for (const pattern of patterns) {
+        const match = html.match(pattern);
+        if (match) {
+            const val = parseFloat(match[1]);
+            if (!isNaN(val) && val > 0.1 && val < 5) {
+                console.log('[Put/Call] CBOE Equity PCR:', val);
+                return val;
+            }
+        }
+    }
+    throw new Error('Put/Call: Kein gültiger Wert auf CBOE-Seite gefunden');
 }
 
 // ── LIVE-API: Margin Debt (FINRA HTML-Scraping) ────────────

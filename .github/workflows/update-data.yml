@@ -44,7 +44,7 @@ jobs:
                   raise ValueError("FRED_API_KEY nicht gesetzt")
               url = (f"https://api.stlouisfed.org/fred/series/observations"
                      f"?series_id={series_id}&api_key={FRED_KEY}"
-                     f"&file_type=json&sort_order=desc&limit=10")
+                     f"&file_type=json&sort_order=desc&limit=36")
               req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
               with urllib.request.urlopen(req, timeout=15) as r:
                   data = json.loads(r.read())

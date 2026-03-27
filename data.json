@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-03-27T18:00:08Z",
+  "timestamp": "2026-03-27T18:03:32Z",
   "vix": 27.44,
   "ftse_price": 142.96,
   "sma200": 141.0468,
@@ -13,5 +13,5 @@
   "hys": 3.21,
   "fedfunds": 3.64,
   "eurusd": 1.1543,
-  "umcsent": null
+  "umcsent": 56.6
 }

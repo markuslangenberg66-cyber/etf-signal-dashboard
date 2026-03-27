@@ -176,19 +176,16 @@ jobs:
               print(f"FRED UMCSENT error: {e}")
 
           # ── FRED: Buffett-Indikator Proxy via SP500 ──────────────────────
-          # Da WILL5000* nicht via API verfuegbar, nutzen wir SP500-Proxy:
-          # S&P 500 represaentiert ca. 80% des US-Aktienmarkts.
-          # Skalierung: SP500 * 0.12 ≈ US Market Cap in Billionen (empirisch)
-          # Buffett = (Market Cap in Mrd.) / GDP * 100
+          # SP500 = Index-Level (z.B. 5500). US MarketCap ≈ SP500 * 7.3 Mrd.
+          # (SP500=5500 → ~$40T = 40,000 Mrd. | GDP ~$28,000 Mrd. → 143%)
+          # GDP ist in Mrd. USD (annual rate)
           try:
-              sp500 = fetch_fred("SP500")   # S&P 500 Index Level (taeglich)
+              sp500 = fetch_fred("SP500")   # S&P 500 Index Level
               gdp   = fetch_fred("GDP")     # Nominales BIP USA in Mrd. USD
               if sp500 and gdp and gdp > 0:
-                  # Empirische Skalierung: SP500 * 240 ≈ US MarketCap in Mrd.
-                  # (SP500=5000 → ~$42T MarketCap / GDP$28T → ~150%)
-                  estimated_mcap_bn = sp500 * 240
+                  estimated_mcap_bn = sp500 * 7.3  # Index-Level → US MarketCap in Mrd.
                   result["buffett"] = round((estimated_mcap_bn / gdp) * 100, 1)
-              print(f"Buffett Proxy (SP500/GDP): {result['buffett']}%")
+              print(f"Buffett Proxy (SP500*7.3/GDP): {result['buffett']}%")
           except Exception as e:
               print(f"FRED Buffett error: {e}")
 

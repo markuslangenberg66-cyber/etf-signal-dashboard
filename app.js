@@ -47,6 +47,13 @@ const el = {
     valMarginDebt:    document.getElementById('val-margin-debt'),
     badgeMarginDebt:  document.getElementById('badge-margin-debt'),
     txtMarginDebtExpl:document.getElementById('txt-margin-debt-expl'),
+    // FRED-Indikatoren (via GitHub Action + data.json)
+    valYieldCurve:    document.getElementById('val-yield-curve'),
+    badgeYieldCurve:  document.getElementById('badge-yield-curve'),
+    txtYieldCurveExpl:document.getElementById('txt-yield-curve-expl'),
+    valRealRate:      document.getElementById('val-real-rate'),
+    badgeRealRate:    document.getElementById('badge-real-rate'),
+    txtRealRateExpl:  document.getElementById('txt-real-rate-expl'),
 };
 
 // Der "Zustand" (State) der App. Wenn wir Daten aus dem Internet holen,
@@ -58,10 +65,12 @@ let state = {
     cross:      { value: null, isgolden: null },
     smaDist:    { value: null },
     treasury:   { value: null },
-    cape:       { value: null },        // CAPE / Shiller P/E
-    buffett:    { value: null },        // Buffett-Indikator (MarketCap/BIP %)
-    pcr:        { value: null },        // Put/Call Ratio
-    marginDebt: { value: null },        // Margin Debt in Mrd. USD (monatlich)
+    cape:       { value: null },
+    buffett:    { value: null },
+    pcr:        { value: null },
+    marginDebt: { value: null },        // via FRED (data.json)
+    yieldCurve: { value: null },        // 10J-2J Spread via FRED (data.json)
+    realRate:   { value: null },        // 10J Realzins via FRED (data.json)
     lastUpdated: null
 };
 
@@ -311,8 +320,9 @@ async function fetchMarginDebt() {
 async function loadData() {
     console.log('[Dashboard] Starte Live-Datenabfrage...');
 
+    // Parallel: Live-Daten + data.json (für FRED-Werte aus GitHub Action)
     const [vixResult, ftseResult, fngResult, treasuryResult,
-           capeResult, buffettResult, pcrResult, marginDebtResult] = await Promise.all([
+           capeResult, buffettResult, pcrResult, fredData] = await Promise.all([
         fetchVIX().catch(e             => { console.error('[VIX] FEHLER:', e.message);         return null; }),
         fetchFTSE().catch(e            => { console.error('[FTSE] FEHLER:', e.message);        return null; }),
         fetchFearGreed().catch(e       => { console.error('[F&G] FEHLER:', e.message);         return null; }),
@@ -320,11 +330,17 @@ async function loadData() {
         fetchCapeRatio().catch(e       => { console.error('[CAPE] FEHLER:', e.message);        return null; }),
         fetchBuffettIndicator().catch(e=> { console.error('[Buffett] FEHLER:', e.message);     return null; }),
         fetchPutCallRatio().catch(e    => { console.error('[Put/Call] FEHLER:', e.message);    return null; }),
-        fetchMarginDebt().catch(e      => { console.error('[MarginDebt] FEHLER:', e.message);  return null; })
+        // FRED-Daten aus data.json (sicher, kein API-Key im Browser)
+        fetch('./data.json?t=' + Date.now(), { cache: 'no-store' })
+            .then(r => r.ok ? r.json() : {})
+            .catch(() => ({}))
     ]);
 
-    console.log('[Dashboard] Live-Ergebnis:', { vix: vixResult, ftse: ftseResult, fng: fngResult,
-        treasury: treasuryResult, cape: capeResult, buffett: buffettResult, pcr: pcrResult, marginDebt: marginDebtResult });
+    const marginDebtFRED  = fredData.margin_debt  ?? null;
+    const yieldCurveFRED  = fredData.yield_curve  ?? null;
+    const realRateFRED    = fredData.real_rate     ?? null;
+
+    console.log('[FRED] Aus data.json:', { marginDebt: marginDebtFRED, yieldCurve: yieldCurveFRED, realRate: realRateFRED });
 
     return {
         timestamp:   new Date().toISOString(),
@@ -337,7 +353,9 @@ async function loadData() {
         cape:        capeResult,
         buffett:     buffettResult,
         pcr:         pcrResult,
-        marginDebt:  marginDebtResult
+        marginDebt:  marginDebtFRED,   // FRED (zuverlässig, via GitHub Action)
+        yieldCurve:  yieldCurveFRED,   // FRED T10Y2Y
+        realRate:    realRateFRED      // FRED DFII10
     };
 }
 
@@ -608,11 +626,71 @@ function updateUI() {
         }
         el.badgeMarginDebt.innerText = badge;
         el.badgeMarginDebt.className = `label-sm px-2 py-0.5 rounded-sm border transition-all ${cls}`;
-        if (el.txtMarginDebtExpl) el.txtMarginDebtExpl.innerText = expl + ' (monatlich von FINRA)';
+        if (el.txtMarginDebtExpl) el.txtMarginDebtExpl.innerText = expl + ' (via FRED® API · quarterly)';
     } else if (el.valMarginDebt) {
         el.valMarginDebt.innerText = '--'; el.badgeMarginDebt.innerText = 'API ERROR';
         el.badgeMarginDebt.className = errorBadge;
         if (el.txtMarginDebtExpl) el.txtMarginDebtExpl.innerText = 'Daten von FINRA nicht verfügbar.';
+    }
+
+    // ---- 12. ZINSKURVE (10J - 2J Spread) ────── via FRED ─────
+    if (el.valYieldCurve && state.yieldCurve.value !== null) {
+        const yc = state.yieldCurve.value;
+        el.valYieldCurve.innerText = (yc >= 0 ? '+' : '') + fmt(yc, 2) + '%';
+        let badge, expl, cls;
+        if (yc < -0.5) {
+            badge = 'INVERTIERT'; cls = 'bg-stitch-error/10 text-stitch-error border-stitch-error/30';
+            expl = `Spread: ${fmt(yc,2)}% – Stark invertierte Zinskurve! Historisch zuverlässigster Rezessionsindikator. Vorsicht.`;
+        } else if (yc < 0) {
+            badge = 'LEICHT INVERTIERT'; cls = 'bg-stitch-tertiary/10 text-stitch-tertiary border-stitch-tertiary/20';
+            expl = `Spread: ${fmt(yc,2)}% – Leicht invertiert. Wirtschaft unter Stress. Erhöhtes Rezessionsrisiko.`;
+        } else if (yc < 0.5) {
+            badge = 'FLACH'; cls = 'bg-stitch-secondary/10 text-stitch-secondary border-stitch-secondary/30';
+            expl = `Spread: ${fmt(yc,2)}% – Nahe Null. Wirtschaft in Übergangsphase, kein klares Signal.`;
+        } else if (yc < 1.5) {
+            badge = 'NORMAL'; cls = 'bg-stitch-outline/30 text-stitch-on-surface border-stitch-outline/30';
+            expl = `Spread: ${fmt(yc,2)}% – Gesunde Zinskurve. Kein Rezessionssignal. Günstiges Umfeld.`;
+        } else {
+            badge = 'STEIL'; cls = 'bg-stitch-primary/10 text-stitch-primary border-stitch-primary/30';
+            expl = `Spread: ${fmt(yc,2)}% – Sehr steile Kurve. Markt erwartet starkes Wirtschaftswachstum. Bullish.`;
+        }
+        el.badgeYieldCurve.innerText = badge;
+        el.badgeYieldCurve.className = `label-sm px-2 py-0.5 rounded-sm border transition-all ${cls}`;
+        if (el.txtYieldCurveExpl) el.txtYieldCurveExpl.innerText = expl;
+    } else if (el.valYieldCurve) {
+        el.valYieldCurve.innerText = '--'; el.badgeYieldCurve.innerText = 'API ERROR';
+        el.badgeYieldCurve.className = errorBadge;
+        if (el.txtYieldCurveExpl) el.txtYieldCurveExpl.innerText = 'FRED-Daten nicht verfügbar (data.json nicht aktuell).';
+    }
+
+    // ---- 13. REALZINS 10J (TIPS) ─────────────── via FRED ────
+    if (el.valRealRate && state.realRate.value !== null) {
+        const rr = state.realRate.value;
+        el.valRealRate.innerText = fmt(rr, 2) + '%';
+        let badge, expl, cls;
+        if (rr < 0) {
+            badge = 'NEGATIV'; cls = 'bg-stitch-primary/10 text-stitch-primary border-stitch-primary/30';
+            expl = `${fmt(rr,2)}% – Negativer Realzins! Anleger werden für Cash bestraft. Starker Rückenwind für Aktien.`;
+        } else if (rr < 0.5) {
+            badge = 'SEHR NIEDRIG'; cls = 'bg-stitch-primary/10 text-stitch-primary border-stitch-primary/30';
+            expl = `${fmt(rr,2)}% – Sehr niedriger Realzins. Günstig für Aktien und Wachstumswerte.`;
+        } else if (rr < 1.5) {
+            badge = 'MODERAT'; cls = 'bg-stitch-outline/30 text-stitch-on-surface border-stitch-outline/30';
+            expl = `${fmt(rr,2)}% – Normales Niveau. Neutrales Umfeld für Aktieninvestitionen.`;
+        } else if (rr < 2.5) {
+            badge = 'ERHÖHT'; cls = 'bg-stitch-secondary/10 text-stitch-secondary border-stitch-secondary/30';
+            expl = `${fmt(rr,2)}% – Hoher Realzins. Anleihen werden attraktiver. Gegenwind für Aktien.`;
+        } else {
+            badge = 'STARK ERHÖHT'; cls = 'bg-stitch-error/10 text-stitch-error border-stitch-error/30';
+            expl = `${fmt(rr,2)}% – Sehr hoher Realzins! Deutlicher Bewertungsdruck auf Aktien. Historisch selten.`;
+        }
+        el.badgeRealRate.innerText = badge;
+        el.badgeRealRate.className = `label-sm px-2 py-0.5 rounded-sm border transition-all ${cls}`;
+        if (el.txtRealRateExpl) el.txtRealRateExpl.innerText = expl;
+    } else if (el.valRealRate) {
+        el.valRealRate.innerText = '--'; el.badgeRealRate.innerText = 'API ERROR';
+        el.badgeRealRate.className = errorBadge;
+        if (el.txtRealRateExpl) el.txtRealRateExpl.innerText = 'FRED-Daten nicht verfügbar (data.json nicht aktuell).';
     }
 
     // ---- 4. DAS ÜBERGEORDNETE SIGNAL-BANNER ----
@@ -709,6 +787,8 @@ async function refreshData() {
         if (d.buffett != null)     { state.buffett.value     = d.buffett; }
         if (d.pcr != null)         { state.pcr.value         = d.pcr; }
         if (d.marginDebt != null)  { state.marginDebt.value  = d.marginDebt; }
+        if (d.yieldCurve != null)  { state.yieldCurve.value  = d.yieldCurve; }
+        if (d.realRate != null)    { state.realRate.value    = d.realRate; }
         if (d.timestamp) {
             state.lastUpdated = new Date(d.timestamp);
         }

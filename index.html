@@ -332,7 +332,7 @@
                         <div class="flex justify-between items-start mb-4">
                             <div>
                                 <div class="label-sm">Margin Debt</div>
-                                <div class="text-[10px] text-stitch-outline mt-0.5">Quelle: FINRA · monatlich</div>
+                                <div class="text-[10px] text-stitch-outline mt-0.5">Quelle: FRED® API · quartalsweise</div>
                             </div>
                             <span id="badge-margin-debt" class="label-sm px-2 py-0.5 rounded-sm bg-stitch-surface-highest text-stitch-outline border border-stitch-outline/30 transition-all ml-2 shrink-0">Pending</span>
                         </div>
@@ -345,8 +345,55 @@
             </div>
         </div>
 
+        <!-- ── MAKRO-INDIKATOREN (FRED® API) ───────────────────────── -->
+        <div class="mt-2">
+            <div class="label-sm opacity-40 mb-3 px-1">Makro-Indikatoren (via FRED® API)</div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-8">
+
+                <!-- ======== ZINSKURVE (10J - 2J) ======== -->
+                <div class="bg-stitch-surface/40 rounded-stitch p-5 sm:p-6 shadow-lg ghost-border ghost-border-hover transition-all duration-500 flex flex-col justify-between mobile-card">
+                    <div>
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <div class="label-sm">Zinskurve (10J – 2J Spread)</div>
+                                <div class="text-[10px] text-stitch-outline mt-0.5">FRED® T10Y2Y · täglich</div>
+                            </div>
+                            <span id="badge-yield-curve" class="label-sm px-2 py-0.5 rounded-sm bg-stitch-surface-highest text-stitch-outline border border-stitch-outline/30 transition-all ml-2 shrink-0">Pending</span>
+                        </div>
+                        <div class="display-lg text-white" id="val-yield-curve">--</div>
+                        <div class="label-sm opacity-50 mt-1">RENDITE 10J MINUS 2J US-TREASURY</div>
+                    </div>
+                    <p id="txt-yield-curve-expl" class="label-sm opacity-60 mt-4 leading-relaxed normal-case tracking-normal text-[11px]">Daten werden geladen...</p>
+                </div>
+
+                <!-- ======== REALZINS 10J (TIPS) ======== -->
+                <div class="bg-stitch-surface/40 rounded-stitch p-5 sm:p-6 shadow-lg ghost-border ghost-border-hover transition-all duration-500 flex flex-col justify-between mobile-card">
+                    <div>
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <div class="label-sm">Realzins 10J (TIPS)</div>
+                                <div class="text-[10px] text-stitch-outline mt-0.5">FRED® DFII10 · täglich</div>
+                            </div>
+                            <span id="badge-real-rate" class="label-sm px-2 py-0.5 rounded-sm bg-stitch-surface-highest text-stitch-outline border border-stitch-outline/30 transition-all ml-2 shrink-0">Pending</span>
+                        </div>
+                        <div class="display-lg text-white" id="val-real-rate">--</div>
+                        <div class="label-sm opacity-50 mt-1">10J INFLATIONSBEREINIGTER ZINS (USA)</div>
+                    </div>
+                    <p id="txt-real-rate-expl" class="label-sm opacity-60 mt-4 leading-relaxed normal-case tracking-normal text-[11px]">Daten werden geladen...</p>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- ── FRED® PFLICHT-ATTRIBUTION (Terms of Use) ──────────── -->
+        <div class="mt-8 mb-4 px-1">
+            <p class="text-[10px] text-stitch-outline/40 text-center leading-relaxed">
+                This product uses the FRED® API but is not endorsed or certified by the Federal Reserve Bank of St. Louis.
+            </p>
+        </div>
+
         <!-- APP INSTALLIEREN BUTTON - Primary Tone -->
-        <div class="mt-16 flex justify-center pb-12">
+        <div class="mt-8 flex justify-center pb-12">
             <button id="btn-install-main" class="btn-shine bg-stitch-primary hover:bg-white text-stitch-on-primary font-black py-4 px-8 sm:px-12 rounded-stitch transition-all duration-400 shadow-[0_10px_30px_-5px_rgba(70,241,197,0.3)] hover:-translate-y-1 flex items-center uppercase tracking-[0.15em] sm:tracking-[0.2em] text-[10px] sm:text-xs mobile-install">
                 <svg class="mr-3" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="square"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                 Initialize Desktop Application

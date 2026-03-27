@@ -303,26 +303,13 @@
             </div>
         </div>
 
-        <!-- ── BEWERTUNGSINDIKATOREN (TIER 3) ──────────────────── -->
+        <!-- ── BEWERTUNGSINDIKATOREN ──────────────────── -->
         <div class="mt-2">
             <div class="label-sm opacity-40 mb-3 px-1">Bewertungsindikatoren (Tier 3)</div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-8">
 
                 <!-- ======== CAPE RATIO / SHILLER P/E ======== -->
-                <div class="bg-stitch-surface/40 rounded-stitch p-5 sm:p-6 shadow-lg ghost-border ghost-border-hover transition-all duration-500 flex flex-col justify-between mobile-card">
-                    <div>
-                        <div class="flex justify-between items-start mb-4">
-                            <div>
-                                <div class="label-sm">CAPE Ratio / Shiller P/E</div>
-                                <div class="text-[10px] text-stitch-outline mt-0.5">Quelle: multpl.com · monatlich</div>
-                            </div>
-                            <span id="badge-cape" class="label-sm px-2 py-0.5 rounded-sm bg-stitch-surface-highest text-stitch-outline border border-stitch-outline/30 transition-all ml-2 shrink-0">Pending</span>
-                        </div>
-                        <div class="display-lg text-white" id="val-cape">--</div>
-                        <div class="label-sm opacity-50 mt-1">KGV ÜBER 10 JAHRE INFLATIONSBEREINIGT</div>
-                    </div>
-                    <p id="txt-cape-expl" class="label-sm opacity-60 mt-4 leading-relaxed normal-case tracking-normal text-[11px]">Daten werden geladen...</p>
-                </div>
+                
 
                 <!-- ======== BUFFETT-INDIKATOR ======== -->
                 <div class="bg-stitch-surface/40 rounded-stitch p-5 sm:p-6 shadow-lg ghost-border ghost-border-hover transition-all duration-500 flex flex-col justify-between mobile-card">
@@ -330,7 +317,7 @@
                         <div class="flex justify-between items-start mb-4">
                             <div>
                                 <div class="label-sm">Buffett-Indikator</div>
-                                <div class="text-[10px] text-stitch-outline mt-0.5">Quelle: multpl.com · quartalsweise</div>
+                                <div class="text-[10px] text-stitch-outline mt-0.5">FRED&#174; WILL5000/GDP &middot; quartalsweise · quartalsweise</div>
                             </div>
                             <span id="badge-buffett" class="label-sm px-2 py-0.5 rounded-sm bg-stitch-surface-highest text-stitch-outline border border-stitch-outline/30 transition-all ml-2 shrink-0">Pending</span>
                         </div>
@@ -341,20 +328,7 @@
                 </div>
 
                 <!-- ======== PUT/CALL RATIO ======== -->
-                <div class="bg-stitch-surface/40 rounded-stitch p-5 sm:p-6 shadow-lg ghost-border ghost-border-hover transition-all duration-500 flex flex-col justify-between mobile-card">
-                    <div>
-                        <div class="flex justify-between items-start mb-4">
-                            <div>
-                                <div class="label-sm">Put/Call Ratio (Equity)</div>
-                                <div class="text-[10px] text-stitch-outline mt-0.5">Quelle: CBOE · täglich</div>
-                            </div>
-                            <span id="badge-pcr" class="label-sm px-2 py-0.5 rounded-sm bg-stitch-surface-highest text-stitch-outline border border-stitch-outline/30 transition-all ml-2 shrink-0">Pending</span>
-                        </div>
-                        <div class="display-lg text-white" id="val-pcr">--</div>
-                        <div class="label-sm opacity-50 mt-1">PUTS ÷ CALLS (CONTRARIAN-INDIKATOR)</div>
-                    </div>
-                    <p id="txt-pcr-expl" class="label-sm opacity-60 mt-4 leading-relaxed normal-case tracking-normal text-[11px]">Daten werden geladen...</p>
-                </div>
+                
 
                 <!-- ======== MARGIN DEBT ======== -->
                 <div class="bg-stitch-surface/40 rounded-stitch p-5 sm:p-6 shadow-lg ghost-border ghost-border-hover transition-all duration-500 flex flex-col justify-between mobile-card">

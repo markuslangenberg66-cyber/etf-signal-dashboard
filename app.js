@@ -360,27 +360,29 @@ async function fetchMarginDebt() {
 async function loadData() {
     console.log('[Dashboard] Starte Live-Datenabfrage...');
 
-    // Parallel: Live-Daten + data.json (für FRED-Werte aus GitHub Action)
-    const [vixResult, ftseResult, fngResult, treasuryResult,
-           capeResult, buffettResult, pcrResult, fredData] = await Promise.all([
-        fetchVIX().catch(e             => { console.error('[VIX] FEHLER:', e.message);         return null; }),
-        fetchFTSE().catch(e            => { console.error('[FTSE] FEHLER:', e.message);        return null; }),
-        fetchFearGreed().catch(e       => { console.error('[F&G] FEHLER:', e.message);         return null; }),
-        fetchTreasuryYield().catch(e   => { console.error('[TNX] FEHLER:', e.message);         return null; }),
-        fetchCapeRatio().catch(e       => { console.error('[CAPE] FEHLER:', e.message);        return null; }),
-        fetchBuffettIndicator().catch(e=> { console.error('[Buffett] FEHLER:', e.message);     return null; }),
-        fetchPutCallRatio().catch(e    => { console.error('[Put/Call] FEHLER:', e.message);    return null; }),
+    // Parallel: Live-Daten + data.json (fuer FRED-Werte aus GitHub Action)
+    // CAPE + Buffett + PCR via Scraping entfernt – CAPE/PCR haben keine zuverlaessige Quelle,
+    // Buffett kommt jetzt sauber via FRED (WILL5000INDFC / GDP)
+    const [vixResult, ftseResult, fngResult, treasuryResult, fredData] = await Promise.all([
+        fetchVIX().catch(e           => { console.error('[VIX] FEHLER:', e.message);   return null; }),
+        fetchFTSE().catch(e          => { console.error('[FTSE] FEHLER:', e.message);  return null; }),
+        fetchFearGreed().catch(e     => { console.error('[F&G] FEHLER:', e.message);   return null; }),
+        fetchTreasuryYield().catch(e => { console.error('[TNX] FEHLER:', e.message);   return null; }),
         // FRED-Daten aus data.json (sicher, kein API-Key im Browser)
         fetch('./data.json?t=' + Date.now(), { cache: 'no-store' })
             .then(r => r.ok ? r.json() : {})
             .catch(() => ({}))
     ]);
 
-    const marginDebtFRED  = fredData.margin_debt  ?? null;
-    const yieldCurveFRED  = fredData.yield_curve  ?? null;
-    const realRateFRED    = fredData.real_rate     ?? null;
+    const marginDebtFRED = fredData.margin_debt  ?? null;
+    const yieldCurveFRED = fredData.yield_curve  ?? null;
+    const realRateFRED   = fredData.real_rate     ?? null;
+    const buffettFRED    = fredData.buffett       ?? null;  // via WILL5000INDFC/GDP
 
-    console.log('[FRED] Aus data.json:', { marginDebt: marginDebtFRED, yieldCurve: yieldCurveFRED, realRate: realRateFRED });
+    console.log('[FRED] Aus data.json:', {
+        marginDebt: marginDebtFRED, yieldCurve: yieldCurveFRED,
+        realRate: realRateFRED, buffett: buffettFRED
+    });
 
     return {
         timestamp:   new Date().toISOString(),
@@ -390,9 +392,7 @@ async function loadData() {
         sma50:       ftseResult ? ftseResult.sma50   : null,
         fng:         fngResult,
         treasury:    treasuryResult,
-        cape:        capeResult,
-        buffett:     buffettResult,
-        pcr:         pcrResult,
+        buffett:     buffettFRED,       // FRED: WILL5000INDFC / GDP * 100
         marginDebt:  marginDebtFRED,
         yieldCurve:  yieldCurveFRED,
         realRate:    realRateFRED,

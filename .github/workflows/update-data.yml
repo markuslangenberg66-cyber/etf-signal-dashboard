@@ -175,14 +175,24 @@ jobs:
           except Exception as e:
               print(f"FRED UMCSENT error: {e}")
 
-          # ── FRED: Buffett-Indikator = Wilshire5000 / BIP * 100 (––––─
-          # WILL5000INDFC: Index-Level ≈ Gesamtmarktkapitalisierung in Mrd. USD
+          # ── FRED: Buffett-Indikator = Wilshire5000 / BIP * 100 ──────────
+          # WILL5000IND: Wilshire 5000 Total Market Index (Wochentlich)
           # GDP: Nominales BIP USA in Mrd. USD (quartalsweise)
-          # Buffett-Indikator = (MarketCap / BIP) * 100 in Prozent
+          # Buffett-Indikator = (Index-Level / GDP * Skalierungsfaktor) * 100
+          # Hinweis: WILL5000IND Level 50,000 ≈ $50T Marktkapitalisierung
+          # GDP 28,000 Mrd. -> Buffett = (50,000 / 28,000) * 100 = 179%
           try:
-              will = fetch_fred("WILL5000INDFC")   # Wilshire 5000 Index ≈ Mrd. USD MarketCap
-              gdp  = fetch_fred("GDP")              # Nominales BIP USA in Mrd. USD
-              if will and gdp:
+              will = None
+              for sid in ["WILL5000IND", "WILL5000INDFC", "WILL5000PRFC"]:
+                  try:
+                      will = fetch_fred(sid)
+                      if will:
+                          print(f"Wilshire via {sid}: {will}")
+                          break
+                  except Exception:
+                      pass
+              gdp = fetch_fred("GDP")
+              if will and gdp and gdp > 0:
                   result["buffett"] = round((will / gdp) * 100, 1)
               print(f"Buffett Indicator: {result['buffett']}% (Wilshire/GDP)")
           except Exception as e:

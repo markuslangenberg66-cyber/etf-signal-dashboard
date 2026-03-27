@@ -26,7 +26,14 @@ jobs:
           result = {
             "timestamp": "",
             "vix": None, "ftse_price": None, "sma200": None, "fng": None,
-            "yield_curve": None, "real_rate": None, "margin_debt": None
+            "yield_curve": None, "real_rate": None, "margin_debt": None,
+            # Market Conditions Score Engine - 6 neue FRED-Serien
+            "unrate": None,       # Unemployment Rate (%)
+            "icsa": None,         # Initial Jobless Claims 4-week avg
+            "hys": None,          # High Yield OAS Spread (%)
+            "fedfunds": None,     # Federal Funds Rate (%)
+            "eurusd": None,       # EUR/USD Exchange Rate
+            "umcsent": None       # University of Michigan Consumer Sentiment
           }
 
           from datetime import datetime, timezone
@@ -120,6 +127,56 @@ jobs:
               print(f"Margin Debt (FRED): ${result['margin_debt']}B")
           except Exception as e:
               print(f"FRED Margin Debt error: {e}")
+
+          # ── FRED: Arbeitslosenquote (UNRATE) ────────────────────
+          try:
+              result["unrate"] = round(fetch_fred("UNRATE"), 2)
+              print(f"Unemployment: {result['unrate']}%")
+          except Exception as e:
+              print(f"FRED UNRATE error: {e}")
+
+          # ── FRED: Initial Jobless Claims 4-Wochen-Avg (ICSA) ────
+          try:
+              url_icsa = (f"https://api.stlouisfed.org/fred/series/observations"
+                          f"?series_id=ICSA&api_key={FRED_KEY}"
+                          f"&file_type=json&sort_order=desc&limit=5")
+              req = urllib.request.Request(url_icsa, headers={"User-Agent": "Mozilla/5.0"})
+              with urllib.request.urlopen(req, timeout=15) as r:
+                  icsa_data = json.loads(r.read())
+              icsa_vals = [float(o["value"]) for o in icsa_data["observations"] if o.get("value",".")!="."]
+              if icsa_vals:
+                  result["icsa"] = round(sum(icsa_vals[:4]) / min(4, len(icsa_vals)))
+              print(f"Initial Claims (4w avg): {result['icsa']:,.0f}")
+          except Exception as e:
+              print(f"FRED ICSA error: {e}")
+
+          # ── FRED: High-Yield OAS Spread (BAMLH0A0HYM2) ──────────
+          try:
+              result["hys"] = round(fetch_fred("BAMLH0A0HYM2"), 3)
+              print(f"HY Spread: {result['hys']}%")
+          except Exception as e:
+              print(f"FRED HYS error: {e}")
+
+          # ── FRED: Federal Funds Rate (FEDFUNDS) ──────────────────
+          try:
+              result["fedfunds"] = round(fetch_fred("FEDFUNDS"), 4)
+              print(f"Fed Funds: {result['fedfunds']}%")
+          except Exception as e:
+              print(f"FRED FEDFUNDS error: {e}")
+
+          # ── FRED: EUR/USD Wechselkurs (DEXUSEU) ──────────────────
+          try:
+              result["eurusd"] = round(fetch_fred("DEXUSEU"), 4)
+              print(f"EUR/USD: {result['eurusd']}")
+          except Exception as e:
+              print(f"FRED EURUSD error: {e}")
+
+          # ── FRED: Univ. Michigan Consumer Sentiment (UMCSENT) ────
+          try:
+              result["umcsent"] = round(fetch_fred("UMCSENT"), 1)
+              print(f"Consumer Sentiment: {result['umcsent']}")
+          except Exception as e:
+              print(f"FRED UMCSENT error: {e}")
 
           with open("data.json", "w") as f:
               json.dump(result, f, indent=2)

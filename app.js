@@ -54,6 +54,37 @@ const el = {
     valRealRate:      document.getElementById('val-real-rate'),
     badgeRealRate:    document.getElementById('badge-real-rate'),
     txtRealRateExpl:  document.getElementById('txt-real-rate-expl'),
+    // Score Engine DOM Refs
+    scoreDisplay:     document.getElementById('composite-score-display'),
+    scoreBar:         document.getElementById('composite-score-bar'),
+    scoreBadge:       document.getElementById('composite-score-badge'),
+    scoreExpl:        document.getElementById('composite-score-expl'),
+    // Score factor mini-bars
+    sbYc:  document.getElementById('sb-yc'),
+    sbRr:  document.getElementById('sb-rr'),
+    sbHys: document.getElementById('sb-hys'),
+    sbUr:  document.getElementById('sb-ur'),
+    sbIc:  document.getElementById('sb-ic'),
+    sbCs:  document.getElementById('sb-cs'),
+    // FRED Score Karten
+    valUnrate:    document.getElementById('val-unrate'),
+    badgeUnrate:  document.getElementById('badge-unrate'),
+    txtUnrateExpl:document.getElementById('txt-unrate-expl'),
+    valIcsa:      document.getElementById('val-icsa'),
+    badgeIcsa:    document.getElementById('badge-icsa'),
+    txtIcsaExpl:  document.getElementById('txt-icsa-expl'),
+    valHys:       document.getElementById('val-hys'),
+    badgeHys:     document.getElementById('badge-hys'),
+    txtHysExpl:   document.getElementById('txt-hys-expl'),
+    valFedfunds:  document.getElementById('val-fedfunds'),
+    badgeFedfunds:document.getElementById('badge-fedfunds'),
+    txtFedfundsExpl: document.getElementById('txt-fedfunds-expl'),
+    valEurusd:    document.getElementById('val-eurusd'),
+    badgeEurusd:  document.getElementById('badge-eurusd'),
+    txtEurusdExpl:document.getElementById('txt-eurusd-expl'),
+    valUmcsent:   document.getElementById('val-umcsent'),
+    badgeUmcsent: document.getElementById('badge-umcsent'),
+    txtUmcsentExpl: document.getElementById('txt-umcsent-expl'),
 };
 
 // Der "Zustand" (State) der App. Wenn wir Daten aus dem Internet holen,
@@ -68,9 +99,18 @@ let state = {
     cape:       { value: null },
     buffett:    { value: null },
     pcr:        { value: null },
-    marginDebt: { value: null },        // via FRED (data.json)
-    yieldCurve: { value: null },        // 10J-2J Spread via FRED (data.json)
-    realRate:   { value: null },        // 10J Realzins via FRED (data.json)
+    marginDebt: { value: null },
+    yieldCurve: { value: null },
+    realRate:   { value: null },
+    // ── Market Conditions Score Engine (FRED®) ────────────────
+    unrate:     { value: null },    // Arbeitslosenquote %
+    icsa:       { value: null },    // Initial Jobless Claims (4w-Avg)
+    hys:        { value: null },    // High Yield OAS Spread %
+    fedfunds:   { value: null },    // Federal Funds Rate %
+    eurusd:     { value: null },    // EUR/USD Wechselkurs
+    umcsent:    { value: null },    // UMich Consumer Sentiment 0-100+
+    compositeScore: null,           // Berechneter Score 0-100
+    scoreBreakdown: {},             // Faktor-Aufschlüsselung
     lastUpdated: null
 };
 
@@ -353,10 +393,73 @@ async function loadData() {
         cape:        capeResult,
         buffett:     buffettResult,
         pcr:         pcrResult,
-        marginDebt:  marginDebtFRED,   // FRED (zuverlässig, via GitHub Action)
-        yieldCurve:  yieldCurveFRED,   // FRED T10Y2Y
-        realRate:    realRateFRED      // FRED DFII10
+        marginDebt:  marginDebtFRED,
+        yieldCurve:  yieldCurveFRED,
+        realRate:    realRateFRED,
+        // Score Engine - 6 neue Felder aus data.json
+        unrate:   fredData.unrate   ?? null,
+        icsa:     fredData.icsa     ?? null,
+        hys:      fredData.hys      ?? null,
+        fedfunds: fredData.fedfunds ?? null,
+        eurusd:   fredData.eurusd   ?? null,
+        umcsent:  fredData.umcsent  ?? null
     };
+}
+
+// ── MARKET CONDITIONS SCORE ENGINE ────────────────────────
+// Regelbasiertes Bewertungssystem: 6 Faktoren, max. 100 Punkte.
+// KEINE Kursvorhersage! Zeigt ob Bedingungen historisch günstig sind.
+function calculateCompositeScore() {
+    let totalPts = 0;
+    let maxPts   = 0;
+    const bd = {}; // breakdown
+
+    // ① Zinskurve T10Y2Y (max 20 Pkt) – höher = besser
+    if (state.yieldCurve.value !== null) {
+        const yc = state.yieldCurve.value;
+        const p  = yc > 1.5 ? 20 : yc > 0.5 ? 16 : yc > 0 ? 10 : yc > -0.5 ? 4 : 0;
+        totalPts += p; maxPts += 20;
+        bd.yieldCurve = { pts: p, max: 20, val: yc };
+    }
+    // ② Realzins DFII10 (max 15 Pkt) – niedriger = besser
+    if (state.realRate.value !== null) {
+        const rr = state.realRate.value;
+        const p  = rr < 0 ? 15 : rr < 1 ? 11 : rr < 2 ? 7 : rr < 2.5 ? 3 : 0;
+        totalPts += p; maxPts += 15;
+        bd.realRate = { pts: p, max: 15, val: rr };
+    }
+    // ③ High-Yield Spread BAMLH0A0HYM2 (max 20 Pkt) – niedriger = besser
+    if (state.hys.value !== null) {
+        const hys = state.hys.value;
+        const p   = hys < 3 ? 20 : hys < 4 ? 15 : hys < 5 ? 10 : hys < 7 ? 4 : 0;
+        totalPts += p; maxPts += 20;
+        bd.hys = { pts: p, max: 20, val: hys };
+    }
+    // ④ Arbeitslosenquote UNRATE (max 15 Pkt) – 4-5% optimal
+    if (state.unrate.value !== null) {
+        const ur = state.unrate.value;
+        const p  = ur < 3.5 ? 10 : ur < 5 ? 15 : ur < 6.5 ? 8 : ur < 8 ? 3 : 1;
+        totalPts += p; maxPts += 15;
+        bd.unrate = { pts: p, max: 15, val: ur };
+    }
+    // ⑤ Initial Claims ICSA (max 15 Pkt) – niedriger = besser
+    if (state.icsa.value !== null) {
+        const ic = state.icsa.value;
+        const p  = ic < 220000 ? 15 : ic < 260000 ? 12 : ic < 310000 ? 7 : ic < 400000 ? 3 : 0;
+        totalPts += p; maxPts += 15;
+        bd.icsa = { pts: p, max: 15, val: ic };
+    }
+    // ⑥ Consumer Sentiment UMCSENT (max 15 Pkt) – höher = besser
+    if (state.umcsent.value !== null) {
+        const cs = state.umcsent.value;
+        const p  = cs > 90 ? 15 : cs > 75 ? 12 : cs > 60 ? 8 : cs > 50 ? 5 : 2;
+        totalPts += p; maxPts += 15;
+        bd.umcsent = { pts: p, max: 15, val: cs };
+    }
+
+    if (maxPts === 0) { state.compositeScore = null; state.scoreBreakdown = bd; return; }
+    state.compositeScore = Math.round((totalPts / maxPts) * 100);
+    state.scoreBreakdown = bd;
 }
 
 
@@ -693,7 +796,216 @@ function updateUI() {
         if (el.txtRealRateExpl) el.txtRealRateExpl.innerText = 'FRED-Daten nicht verfügbar (data.json nicht aktuell).';
     }
 
-    // ---- 4. DAS ÜBERGEORDNETE SIGNAL-BANNER ----
+    // ┌──────────────────────────────────────────────────────────────
+    // │         MARKET CONDITIONS SCORE (0–100)                  │
+    // └─────────────────────────────────────────────────────────────┘
+    if (el.scoreDisplay) {
+        const s = state.compositeScore;
+        if (s !== null) {
+            // Score-Zahl
+            el.scoreDisplay.innerText = s;
+
+            // Farbe und Label je nach Score-Höhe
+            let color, label, expl;
+            if (s >= 80) {
+                color = 'text-stitch-primary drop-shadow-[0_0_30px_rgba(70,241,197,0.5)]';
+                label = '🚀 STARKE KAUFBEDINGUNGEN';
+                expl = `Score ${s}/100 – Alle wichtigen Marktbedingungen sind gleichzeitig bullisch ausgerichtet. Historisch sehr günstige Einstiegsphase.`;
+            } else if (s >= 60) {
+                color = 'text-stitch-primary';
+                label = '✅ GÜNSTIGE BEDINGUNGEN';
+                expl = `Score ${s}/100 – Mehrheit der Indikatoren zeigt positives Umfeld. Gutes Zeitfenster für positionsaufbau.`;
+            } else if (s >= 40) {
+                color = 'text-yellow-300';
+                label = '⚖️ NEUTRALE PHASE';
+                expl = `Score ${s}/100 – Gemischtes Bild. Einige Faktoren positiv, andere negativ. Kein klares Kaufsignal.`;
+            } else if (s >= 20) {
+                color = 'text-stitch-tertiary';
+                label = '⚠️ VORSICHT';
+                expl = `Score ${s}/100 – Mehrheit der Bedingungen bremst. Riskantes Einstiegsumfeld. Abwarten empfohlen.`;
+            } else {
+                color = 'text-stitch-error';
+                label = '🔴 RISIKO-UMFELD';
+                expl = `Score ${s}/100 – Stark bremsendes Marktumfeld. Historisch hohe Verlustwahrscheinlichkeit. Kein Einstieg.`;
+            }
+
+            el.scoreDisplay.className = `text-8xl sm:text-9xl font-black leading-none transition-all ${color}`;
+            el.scoreBadge.innerText = label;
+            if (el.scoreExpl) el.scoreExpl.innerText = expl;
+
+            // Fortschrittsbalken (gefärbt 0-100%)
+            const barColor = s >= 80 ? 'bg-stitch-primary shadow-[0_0_20px_rgba(70,241,197,0.4)]'
+                           : s >= 60 ? 'bg-stitch-primary/70'
+                           : s >= 40 ? 'bg-yellow-400/70'
+                           : s >= 20 ? 'bg-stitch-tertiary/70' : 'bg-stitch-error/70';
+            el.scoreBar.style.width = s + '%';
+            el.scoreBar.className = `h-full transition-all duration-1000 ease-out rounded-full ${barColor}`;
+
+            // Faktor-Mini-Bars aktualisieren
+            const bd = state.scoreBreakdown;
+            const setBar = (el, pts, max) => { if(el) el.style.width = (max > 0 ? Math.round((pts/max)*100) : 0) + '%'; };
+            setBar(el.sbYc,  bd.yieldCurve?.pts ?? 0, bd.yieldCurve?.max ?? 20);
+            setBar(el.sbRr,  bd.realRate?.pts   ?? 0, bd.realRate?.max   ?? 15);
+            setBar(el.sbHys, bd.hys?.pts        ?? 0, bd.hys?.max        ?? 20);
+            setBar(el.sbUr,  bd.unrate?.pts     ?? 0, bd.unrate?.max     ?? 15);
+            setBar(el.sbIc,  bd.icsa?.pts       ?? 0, bd.icsa?.max       ?? 15);
+            setBar(el.sbCs,  bd.umcsent?.pts    ?? 0, bd.umcsent?.max    ?? 15);
+        } else {
+            el.scoreDisplay.innerText = '--';
+            el.scoreDisplay.className = 'text-8xl sm:text-9xl font-black leading-none text-stitch-outline/40';
+            if (el.scoreBadge) el.scoreBadge.innerText = 'FRED-DATEN WERDEN GELADEN...';
+            if (el.scoreExpl)  el.scoreExpl.innerText = 'Der Score berechnet sich automatisch, sobald die FRED-Daten via GitHub Action verfügbar sind.';
+        }
+    }
+
+    // ─ SCORE KARTEN: UNRATE ───────────────────────────────────────────
+    if (el.valUnrate && state.unrate.value !== null) {
+        const ur = state.unrate.value;
+        el.valUnrate.innerText = fmt(ur, 1) + '%';
+        let badge, expl, cls;
+        if (ur < 3.5) {
+            badge = 'ÜBERHITZUNG?'; cls = 'bg-stitch-secondary/10 text-stitch-secondary border-stitch-secondary/30';
+            expl = `${fmt(ur,1)}% – Extrem niedriger Wert. Kann auf Überhitzung und späteren Inflationsdruck hinweisen.`;
+        } else if (ur < 5) {
+            badge = 'STARK'; cls = 'bg-stitch-primary/10 text-stitch-primary border-stitch-primary/30';
+            expl = `${fmt(ur,1)}% – Starker Arbeitsmarkt. Idealer Bereich: Wirtschaft wächst ohne Überhitzung.`;
+        } else if (ur < 6.5) {
+            badge = 'MODERAT'; cls = 'bg-stitch-outline/30 text-stitch-on-surface border-stitch-outline/30';
+            expl = `${fmt(ur,1)}% – Normaler Bereich. Keine akute Rezessionsgefahr, aber Vorsicht angebracht.`;
+        } else {
+            badge = 'SCHWACH'; cls = 'bg-stitch-error/10 text-stitch-error border-stitch-error/30';
+            expl = `${fmt(ur,1)}% – Deutlich erhöhte Arbeitslosigkeit. Rezession wahrscheinlich, Märkte unter Druck.`;
+        }
+        el.badgeUnrate.innerText = badge; el.badgeUnrate.className = `label-sm px-2 py-0.5 rounded-sm border transition-all ${cls}`;
+        if (el.txtUnrateExpl) el.txtUnrateExpl.innerText = expl;
+    } else if (el.valUnrate) {
+        el.valUnrate.innerText = '--'; el.badgeUnrate.innerText = 'API ERROR'; el.badgeUnrate.className = errorBadge;
+    }
+
+    // ─ SCORE KARTEN: ICSA ────────────────────────────────────────────
+    if (el.valIcsa && state.icsa.value !== null) {
+        const ic = state.icsa.value;
+        const icK = (ic / 1000).toFixed(0);
+        el.valIcsa.innerText = icK + 'K';
+        let badge, expl, cls;
+        if (ic < 220000) {
+            badge = 'SEHR GUT'; cls = 'bg-stitch-primary/10 text-stitch-primary border-stitch-primary/30';
+            expl = `${icK}K – Sehr wenige Entlassungen. Arbeitsmarkt sehr fest. Positives Signal.`;
+        } else if (ic < 260000) {
+            badge = 'GUT'; cls = 'bg-stitch-outline/30 text-stitch-on-surface border-stitch-outline/30';
+            expl = `${icK}K – Normaler Bereich. Kein Stress im Arbeitsmarkt sichtbar.`;
+        } else if (ic < 310000) {
+            badge = 'ERHOHT'; cls = 'bg-stitch-secondary/10 text-stitch-secondary border-stitch-secondary/30';
+            expl = `${icK}K – Leichter Aufwärtstrend bei Entlassungen. Erste Warnsignale.`;
+        } else {
+            badge = 'ALARM'; cls = 'bg-stitch-error/10 text-stitch-error border-stitch-error/30';
+            expl = `${icK}K – Starker Anstieg! Massenentlassungen beginnen. Rezession nähert sich.`;
+        }
+        el.badgeIcsa.innerText = badge; el.badgeIcsa.className = `label-sm px-2 py-0.5 rounded-sm border transition-all ${cls}`;
+        if (el.txtIcsaExpl) el.txtIcsaExpl.innerText = expl;
+    } else if (el.valIcsa) {
+        el.valIcsa.innerText = '--'; el.badgeIcsa.innerText = 'API ERROR'; el.badgeIcsa.className = errorBadge;
+    }
+
+    // ─ SCORE KARTEN: HIGH YIELD SPREAD ───────────────────────────
+    if (el.valHys && state.hys.value !== null) {
+        const hys = state.hys.value;
+        el.valHys.innerText = fmt(hys, 2) + '%';
+        let badge, expl, cls;
+        if (hys < 3) {
+            badge = 'RISIKOAPPETIT'; cls = 'bg-stitch-primary/10 text-stitch-primary border-stitch-primary/30';
+            expl = `${fmt(hys,2)}% – Sehr enger Spread. Profis nehmen freudvoll Risiko. Starker Risk-On Modus.`;
+        } else if (hys < 4) {
+            badge = 'NORMAL'; cls = 'bg-stitch-outline/30 text-stitch-on-surface border-stitch-outline/30';
+            expl = `${fmt(hys,2)}% – Historisch normaler Bereich. Keine erhöhte Kreditstress-Warnung.`;
+        } else if (hys < 5.5) {
+            badge = 'ERHOHT'; cls = 'bg-stitch-secondary/10 text-stitch-secondary border-stitch-secondary/30';
+            expl = `${fmt(hys,2)}% – Spreads weiten sich. Profis preisen mehr Ausfallrisiko ein. Vorsicht.`;
+        } else if (hys < 7) {
+            badge = 'STRESS'; cls = 'bg-stitch-tertiary/10 text-stitch-tertiary border-stitch-tertiary/20';
+            expl = `${fmt(hys,2)}% – Kreditstress sichtbar. Typisch für Rezessionen oder Krisen.`;
+        } else {
+            badge = 'PANIK'; cls = 'bg-stitch-error/10 text-stitch-error border-stitch-error/30';
+            expl = `${fmt(hys,2)}% – Extremwert! Letztes Mal so hoch: 2020 (Covid), 2009 (Finanzkrise).`;
+        }
+        el.badgeHys.innerText = badge; el.badgeHys.className = `label-sm px-2 py-0.5 rounded-sm border transition-all ${cls}`;
+        if (el.txtHysExpl) el.txtHysExpl.innerText = expl;
+    } else if (el.valHys) {
+        el.valHys.innerText = '--'; el.badgeHys.innerText = 'API ERROR'; el.badgeHys.className = errorBadge;
+    }
+
+    // ─ SCORE KARTEN: FED FUNDS RATE ──────────────────────────────
+    if (el.valFedfunds && state.fedfunds.value !== null) {
+        const ff = state.fedfunds.value;
+        el.valFedfunds.innerText = fmt(ff, 2) + '%';
+        let badge, expl, cls;
+        if (ff < 2) {
+            badge = 'EXPANSIV'; cls = 'bg-stitch-primary/10 text-stitch-primary border-stitch-primary/30';
+            expl = `${fmt(ff,2)}% – Lockere Geldpolitik. Sehr günstig für Aktien und Wachstumswerte.`;
+        } else if (ff < 3.5) {
+            badge = 'NEUTRAL'; cls = 'bg-stitch-outline/30 text-stitch-on-surface border-stitch-outline/30';
+            expl = `${fmt(ff,2)}% – Normalisierte Zinsen. Weder Bremse noch Gas für Märkte.`;
+        } else if (ff < 5) {
+            badge = 'RESTRIKTIV'; cls = 'bg-stitch-secondary/10 text-stitch-secondary border-stitch-secondary/30';
+            expl = `${fmt(ff,2)}% – Fed bremst Wirtschaft. Höherer Druck auf Aktienmarkt.`;
+        } else {
+            badge = 'STARK RESTRIKTIV'; cls = 'bg-stitch-error/10 text-stitch-error border-stitch-error/30';
+            expl = `${fmt(ff,2)}% – Sehr hohe Zinsen! Historisch hat das Rezessionen auslöst. Große Vorsicht.`;
+        }
+        el.badgeFedfunds.innerText = badge; el.badgeFedfunds.className = `label-sm px-2 py-0.5 rounded-sm border transition-all ${cls}`;
+        if (el.txtFedfundsExpl) el.txtFedfundsExpl.innerText = expl;
+    } else if (el.valFedfunds) {
+        el.valFedfunds.innerText = '--'; el.badgeFedfunds.innerText = 'API ERROR'; el.badgeFedfunds.className = errorBadge;
+    }
+
+    // ─ SCORE KARTEN: EUR/USD ──────────────────────────────────────────
+    if (el.valEurusd && state.eurusd.value !== null) {
+        const eu = state.eurusd.value;
+        el.valEurusd.innerText = fmt(eu, 4);
+        let badge, expl, cls;
+        if (eu > 1.12) {
+            badge = 'EUR STARK'; cls = 'bg-stitch-secondary/10 text-stitch-secondary border-stitch-secondary/30';
+            expl = `${fmt(eu,4)} – Starker Euro. USD-Anlagen bringen weniger in EUR um. Dämpft VWCE-Rendite.`;
+        } else if (eu > 1.05) {
+            badge = 'AUSGEWOGEN'; cls = 'bg-stitch-outline/30 text-stitch-on-surface border-stitch-outline/30';
+            expl = `${fmt(eu,4)} – EUR/USD in normalem Bereich. Neutraler Einfluss auf VWCE in Euro.`;
+        } else {
+            badge = 'EUR SCHWACH'; cls = 'bg-stitch-primary/10 text-stitch-primary border-stitch-primary/30';
+            expl = `${fmt(eu,4)} – Schwacher Euro. USD-Anlagen in EUR umgerechnet teurer. Erhöht VWCE-Kurs in EUR.`;
+        }
+        el.badgeEurusd.innerText = badge; el.badgeEurusd.className = `label-sm px-2 py-0.5 rounded-sm border transition-all ${cls}`;
+        if (el.txtEurusdExpl) el.txtEurusdExpl.innerText = expl;
+    } else if (el.valEurusd) {
+        el.valEurusd.innerText = '--'; el.badgeEurusd.innerText = 'API ERROR'; el.badgeEurusd.className = errorBadge;
+    }
+
+    // ─ SCORE KARTEN: CONSUMER SENTIMENT ──────────────────────────
+    if (el.valUmcsent && state.umcsent.value !== null) {
+        const cs = state.umcsent.value;
+        el.valUmcsent.innerText = fmt(cs, 1);
+        let badge, expl, cls;
+        if (cs > 90) {
+            badge = 'EUPHORISCH'; cls = 'bg-stitch-primary/10 text-stitch-primary border-stitch-primary/30';
+            expl = `${fmt(cs,1)} – Sehr optimistische Konsumenten. Starkes Wirtschaftsvertrauen.`;
+        } else if (cs > 75) {
+            badge = 'POSITIV'; cls = 'bg-stitch-primary/10 text-stitch-primary border-stitch-primary/30';
+            expl = `${fmt(cs,1)} – Gesundes Verbrauchervertrauen. Günstig für Konsum und Wirtschaftswachstum.`;
+        } else if (cs > 60) {
+            badge = 'NEUTRAL'; cls = 'bg-stitch-outline/30 text-stitch-on-surface border-stitch-outline/30';
+            expl = `${fmt(cs,1)} – Durchschnittliche Stimmung. Wirtschaft läuft, aber keine Euphorie.`;
+        } else if (cs > 50) {
+            badge = 'VERUNSICHERT'; cls = 'bg-stitch-secondary/10 text-stitch-secondary border-stitch-secondary/30';
+            expl = `${fmt(cs,1)} – Gedämpfte Stimmung. Konsumenten zurückhaltend, oft Vorböte für Abschwung.`;
+        } else {
+            badge = 'ANGST'; cls = 'bg-stitch-error/10 text-stitch-error border-stitch-error/30';
+            expl = `${fmt(cs,1)} – Sehr gedrücktes Vertrauen! Historisch oft auf Rezessionen folgend.`;
+        }
+        el.badgeUmcsent.innerText = badge; el.badgeUmcsent.className = `label-sm px-2 py-0.5 rounded-sm border transition-all ${cls}`;
+        if (el.txtUmcsentExpl) el.txtUmcsentExpl.innerText = expl;
+    } else if (el.valUmcsent) {
+        el.valUmcsent.innerText = '--'; el.badgeUmcsent.innerText = 'API ERROR'; el.badgeUmcsent.className = errorBadge;
+    }
+
     const anyError = state.vix.value === null || state.ftse.price === null || state.fng.value === null;
     const allOk = !anyError && state.vix.ok && state.ftse.ok && state.fng.ok;
     const subtextEl = document.querySelector('.status-subtext');
@@ -789,6 +1101,14 @@ async function refreshData() {
         if (d.marginDebt != null)  { state.marginDebt.value  = d.marginDebt; }
         if (d.yieldCurve != null)  { state.yieldCurve.value  = d.yieldCurve; }
         if (d.realRate != null)    { state.realRate.value    = d.realRate; }
+        if (d.unrate   != null)    { state.unrate.value      = d.unrate; }
+        if (d.icsa     != null)    { state.icsa.value        = d.icsa; }
+        if (d.hys      != null)    { state.hys.value         = d.hys; }
+        if (d.fedfunds != null)    { state.fedfunds.value    = d.fedfunds; }
+        if (d.eurusd   != null)    { state.eurusd.value      = d.eurusd; }
+        if (d.umcsent  != null)    { state.umcsent.value     = d.umcsent; }
+        // Score berechnen
+        calculateCompositeScore();
         if (d.timestamp) {
             state.lastUpdated = new Date(d.timestamp);
         }

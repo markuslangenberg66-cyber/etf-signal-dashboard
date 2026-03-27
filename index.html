@@ -161,6 +161,36 @@
             </div>
         </div>
 
+
+        <!-- MARKET CONDITIONS SCORE ENGINE (FRED API) -->
+        <div class="bg-stitch-surface rounded-stitch p-6 sm:p-10 shadow-2xl ghost-border transition-all duration-700">
+            <div class="flex justify-between items-start mb-8">
+                <div>
+                    <div class="label-sm opacity-40 mb-1">FRED&#174; Analysis Engine &middot; 6 Makro-Faktoren</div>
+                    <div class="text-white font-black text-sm sm:text-lg uppercase tracking-widest">Market Conditions Score</div>
+                </div>
+                <span id="composite-score-badge" class="label-sm px-2 py-1 rounded-sm bg-stitch-surface-highest text-stitch-outline border border-stitch-outline/30 text-right max-w-[160px] leading-tight text-[10px]">Score wird berechnet...</span>
+            </div>
+            <div class="flex flex-col sm:flex-row sm:items-end gap-6 mb-8">
+                <div id="composite-score-display" class="text-8xl sm:text-9xl font-black leading-none text-stitch-outline/30">--</div>
+                <div class="flex-1">
+                    <div class="label-sm opacity-40 mb-2">von 100 Punkten</div>
+                    <div class="h-3 bg-stitch-surface-highest rounded-full overflow-hidden mb-4">
+                        <div id="composite-score-bar" class="h-full rounded-full transition-all duration-1000" style="width:0%"></div>
+                    </div>
+                    <p id="composite-score-expl" class="label-sm opacity-50 normal-case tracking-normal text-[11px] leading-relaxed">Score laedt... GitHub Action aktualisiert stuendlich via FRED&#174; API.</p>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-4 border-t border-stitch-outline/10">
+                <div><div class="flex justify-between mb-1.5"><span class="label-sm opacity-40 text-[9px] uppercase tracking-widest">&#9312; Zinskurve</span><span class="label-sm opacity-30 text-[9px]">/20Pt</span></div><div class="h-1.5 bg-stitch-surface-highest rounded-full"><div id="sb-yc" class="h-full bg-stitch-primary/60 rounded-full transition-all duration-700" style="width:0%"></div></div></div>
+                <div><div class="flex justify-between mb-1.5"><span class="label-sm opacity-40 text-[9px] uppercase tracking-widest">&#9313; Realzins</span><span class="label-sm opacity-30 text-[9px]">/15Pt</span></div><div class="h-1.5 bg-stitch-surface-highest rounded-full"><div id="sb-rr" class="h-full bg-stitch-primary/60 rounded-full transition-all duration-700" style="width:0%"></div></div></div>
+                <div><div class="flex justify-between mb-1.5"><span class="label-sm opacity-40 text-[9px] uppercase tracking-widest">&#9314; HY-Spread</span><span class="label-sm opacity-30 text-[9px]">/20Pt</span></div><div class="h-1.5 bg-stitch-surface-highest rounded-full"><div id="sb-hys" class="h-full bg-stitch-primary/60 rounded-full transition-all duration-700" style="width:0%"></div></div></div>
+                <div><div class="flex justify-between mb-1.5"><span class="label-sm opacity-40 text-[9px] uppercase tracking-widest">&#9315; Arbeitslos.</span><span class="label-sm opacity-30 text-[9px]">/15Pt</span></div><div class="h-1.5 bg-stitch-surface-highest rounded-full"><div id="sb-ur" class="h-full bg-stitch-primary/60 rounded-full transition-all duration-700" style="width:0%"></div></div></div>
+                <div><div class="flex justify-between mb-1.5"><span class="label-sm opacity-40 text-[9px] uppercase tracking-widest">&#9316; Init.Claims</span><span class="label-sm opacity-30 text-[9px]">/15Pt</span></div><div class="h-1.5 bg-stitch-surface-highest rounded-full"><div id="sb-ic" class="h-full bg-stitch-primary/60 rounded-full transition-all duration-700" style="width:0%"></div></div></div>
+                <div><div class="flex justify-between mb-1.5"><span class="label-sm opacity-40 text-[9px] uppercase tracking-widest">&#9317; Sentiment</span><span class="label-sm opacity-30 text-[9px]">/15Pt</span></div><div class="h-1.5 bg-stitch-surface-highest rounded-full"><div id="sb-cs" class="h-full bg-stitch-primary/60 rounded-full transition-all duration-700" style="width:0%"></div></div></div>
+            </div>
+        </div>
+
         <!-- 3 KARTEN BEREICH (GRID) - Editorial Scale -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-8">
             
@@ -384,6 +414,45 @@
 
             </div>
         </div>
+
+        
+        <!-- FRED Score Engine - 6 Makro-Karten -->
+        <div class="mt-2">
+            <div class="label-sm opacity-40 mb-3 px-1">Makro-Faktoren Score-Detail (via FRED&#174; API)</div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-8">
+                <div class="bg-stitch-surface/40 rounded-stitch p-5 sm:p-6 shadow-lg ghost-border ghost-border-hover transition-all duration-500 flex flex-col justify-between mobile-card">
+                    <div><div class="flex justify-between items-start mb-4"><div><div class="label-sm">Arbeitslosenquote</div><div class="text-[10px] text-stitch-outline mt-0.5">FRED&#174; UNRATE &middot; monatlich</div></div><span id="badge-unrate" class="label-sm px-2 py-0.5 rounded-sm bg-stitch-surface-highest text-stitch-outline border border-stitch-outline/30 transition-all ml-2 shrink-0">Pending</span></div>
+                    <div class="display-lg text-white" id="val-unrate">--</div><div class="label-sm opacity-50 mt-1">US-ARBEITSLOSENQUOTE (%)</div></div>
+                    <p id="txt-unrate-expl" class="label-sm opacity-60 mt-4 leading-relaxed normal-case tracking-normal text-[11px]">Daten werden geladen...</p>
+                </div>
+                <div class="bg-stitch-surface/40 rounded-stitch p-5 sm:p-6 shadow-lg ghost-border ghost-border-hover transition-all duration-500 flex flex-col justify-between mobile-card">
+                    <div><div class="flex justify-between items-start mb-4"><div><div class="label-sm">Initial Jobless Claims</div><div class="text-[10px] text-stitch-outline mt-0.5">FRED&#174; ICSA &middot; woechentlich (4w-Avg)</div></div><span id="badge-icsa" class="label-sm px-2 py-0.5 rounded-sm bg-stitch-surface-highest text-stitch-outline border border-stitch-outline/30 transition-all ml-2 shrink-0">Pending</span></div>
+                    <div class="display-lg text-white" id="val-icsa">--</div><div class="label-sm opacity-50 mt-1">ERSTANTRAEGE ARBEITSLOSENGELD</div></div>
+                    <p id="txt-icsa-expl" class="label-sm opacity-60 mt-4 leading-relaxed normal-case tracking-normal text-[11px]">Daten werden geladen...</p>
+                </div>
+                <div class="bg-stitch-surface/40 rounded-stitch p-5 sm:p-6 shadow-lg ghost-border ghost-border-hover transition-all duration-500 flex flex-col justify-between mobile-card">
+                    <div><div class="flex justify-between items-start mb-4"><div><div class="label-sm">High-Yield Spread</div><div class="text-[10px] text-stitch-outline mt-0.5">FRED&#174; BAMLH0A0HYM2 &middot; taeglich</div></div><span id="badge-hys" class="label-sm px-2 py-0.5 rounded-sm bg-stitch-surface-highest text-stitch-outline border border-stitch-outline/30 transition-all ml-2 shrink-0">Pending</span></div>
+                    <div class="display-lg text-white" id="val-hys">--</div><div class="label-sm opacity-50 mt-1">KREDIT-RISIKOAUFSCHLAG (%)</div></div>
+                    <p id="txt-hys-expl" class="label-sm opacity-60 mt-4 leading-relaxed normal-case tracking-normal text-[11px]">Daten werden geladen...</p>
+                </div>
+                <div class="bg-stitch-surface/40 rounded-stitch p-5 sm:p-6 shadow-lg ghost-border ghost-border-hover transition-all duration-500 flex flex-col justify-between mobile-card">
+                    <div><div class="flex justify-between items-start mb-4"><div><div class="label-sm">Fed Leitzins</div><div class="text-[10px] text-stitch-outline mt-0.5">FRED&#174; FEDFUNDS &middot; monatlich</div></div><span id="badge-fedfunds" class="label-sm px-2 py-0.5 rounded-sm bg-stitch-surface-highest text-stitch-outline border border-stitch-outline/30 transition-all ml-2 shrink-0">Pending</span></div>
+                    <div class="display-lg text-white" id="val-fedfunds">--</div><div class="label-sm opacity-50 mt-1">FEDERAL FUNDS RATE (%)</div></div>
+                    <p id="txt-fedfunds-expl" class="label-sm opacity-60 mt-4 leading-relaxed normal-case tracking-normal text-[11px]">Daten werden geladen...</p>
+                </div>
+                <div class="bg-stitch-surface/40 rounded-stitch p-5 sm:p-6 shadow-lg ghost-border ghost-border-hover transition-all duration-500 flex flex-col justify-between mobile-card">
+                    <div><div class="flex justify-between items-start mb-4"><div><div class="label-sm">EUR / USD</div><div class="text-[10px] text-stitch-outline mt-0.5">FRED&#174; DEXUSEU &middot; taeglich</div></div><span id="badge-eurusd" class="label-sm px-2 py-0.5 rounded-sm bg-stitch-surface-highest text-stitch-outline border border-stitch-outline/30 transition-all ml-2 shrink-0">Pending</span></div>
+                    <div class="display-lg text-white" id="val-eurusd">--</div><div class="label-sm opacity-50 mt-1">EURO / US-DOLLAR KURS</div></div>
+                    <p id="txt-eurusd-expl" class="label-sm opacity-60 mt-4 leading-relaxed normal-case tracking-normal text-[11px]">Daten werden geladen...</p>
+                </div>
+                <div class="bg-stitch-surface/40 rounded-stitch p-5 sm:p-6 shadow-lg ghost-border ghost-border-hover transition-all duration-500 flex flex-col justify-between mobile-card">
+                    <div><div class="flex justify-between items-start mb-4"><div><div class="label-sm">Consumer Sentiment</div><div class="text-[10px] text-stitch-outline mt-0.5">FRED&#174; UMCSENT &middot; monatlich</div></div><span id="badge-umcsent" class="label-sm px-2 py-0.5 rounded-sm bg-stitch-surface-highest text-stitch-outline border border-stitch-outline/30 transition-all ml-2 shrink-0">Pending</span></div>
+                    <div class="display-lg text-white" id="val-umcsent">--</div><div class="label-sm opacity-50 mt-1">VERBRAUCHERVERTRAUEN (UMICH)</div></div>
+                    <p id="txt-umcsent-expl" class="label-sm opacity-60 mt-4 leading-relaxed normal-case tracking-normal text-[11px]">Daten werden geladen...</p>
+                </div>
+            </div>
+        </div>
+
 
         <!-- ── FRED® PFLICHT-ATTRIBUTION (Terms of Use) ──────────── -->
         <div class="mt-8 mb-4 px-1">

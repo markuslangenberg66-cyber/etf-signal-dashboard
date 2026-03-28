@@ -1,8 +1,8 @@
 {
-  "timestamp": "2026-03-28T15:31:18Z",
+  "timestamp": "2026-03-28T16:35:06Z",
   "vix": 31.05,
-  "ftse_price": 140.98,
-  "sma200": 141.1088,
+  "ftse_price": null,
+  "sma200": null,
   "fng": 10.2172757475083,
   "yield_curve": 0.56,
   "real_rate": 2.08,

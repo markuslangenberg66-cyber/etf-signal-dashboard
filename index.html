@@ -84,7 +84,7 @@
 
         /* Editorial Typography Scale (Huge number, tiny label) */
         .display-lg { font-size: 2.5rem; font-weight: 900; line-height: 1; letter-spacing: -0.05em; }
-        .label-sm { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #85948d; }
+        .label-sm { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #b0c0b8; }
 
         /* Desktop: Größere Display-Schrift */
         @media (min-width: 768px) {
@@ -141,7 +141,7 @@
             </div>
             
             <!-- Push Notification Button (wird durch JS angezeigt falls nötig) -->
-            <button id="enable-notifications" class="text-[10px] font-bold uppercase tracking-wider text-stitch-outline hover:text-white transition flex items-center" style="display: none;">
+            <button id="enable-notifications" class="text-[10px] font-bold uppercase tracking-wider text-slate-400 hover:text-white transition flex items-center" style="display: none;">
                 <svg width="12" height="12" class="mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
                 Enable Push
             </button>
@@ -155,7 +155,7 @@
         <div id="global-status" class="bg-stitch-surface rounded-stitch p-6 sm:p-10 flex flex-col items-center justify-center transform-gpu transition-all duration-700 area-pulse border-b border-stitch-outline/20 mobile-status">
             <div id="global-icon" class="text-6xl mb-4 drop-shadow-xl saturate-150">⛔</div>
             <div class="text-center">
-                <div class="label-sm opacity-60 mb-2">System Status</div>
+                <div class="label-sm opacity-90 mb-2">System Status</div>
                 <h2 id="global-text" class="display-lg text-white mb-2">Analyzing...</h2>
                 <p class="label-sm status-subtext">Calculating global market liquidity & signals</p>
             </div>
@@ -166,28 +166,28 @@
         <div class="bg-stitch-surface rounded-stitch p-6 sm:p-10 shadow-2xl ghost-border transition-all duration-700">
             <div class="flex justify-between items-start mb-8">
                 <div>
-                    <div class="label-sm opacity-40 mb-1">FRED&#174; Analysis Engine &middot; 6 Makro-Faktoren</div>
+                    <div class="label-sm opacity-90 mb-1">FRED&#174; Analysis Engine &middot; 6 Makro-Faktoren</div>
                     <div class="text-white font-black text-sm sm:text-lg uppercase tracking-widest">Market Conditions Score</div>
                 </div>
-                <span id="composite-score-badge" class="label-sm px-2 py-1 rounded-sm bg-stitch-surface-highest text-stitch-outline border border-stitch-outline/30 text-right max-w-[160px] leading-tight text-[10px]">Score wird berechnet...</span>
+                <span id="composite-score-badge" class="label-sm px-2 py-1 rounded-sm bg-stitch-surface-highest text-slate-400 border border-stitch-outline/30 text-right max-w-[160px] leading-tight text-[10px]">Score wird berechnet...</span>
             </div>
             <div class="flex flex-col sm:flex-row sm:items-end gap-6 mb-8">
-                <div id="composite-score-display" class="text-8xl sm:text-9xl font-black leading-none text-stitch-outline/30">--</div>
+                <div id="composite-score-display" class="text-8xl sm:text-9xl font-black leading-none text-slate-400/30">--</div>
                 <div class="flex-1">
-                    <div class="label-sm opacity-40 mb-2">von 100 Punkten</div>
+                    <div class="label-sm opacity-90 mb-2">von 100 Punkten</div>
                     <div class="h-3 bg-stitch-surface-highest rounded-full overflow-hidden mb-4">
                         <div id="composite-score-bar" class="h-full rounded-full transition-all duration-1000" style="width:0%"></div>
                     </div>
-                    <p id="composite-score-expl" class="label-sm opacity-50 normal-case tracking-normal text-[11px] leading-relaxed">Score laedt... GitHub Action aktualisiert stuendlich via FRED&#174; API.</p>
+                    <p id="composite-score-expl" class="label-sm opacity-80 normal-case tracking-normal text-[11px] leading-relaxed">Score laedt... GitHub Action aktualisiert stuendlich via FRED&#174; API.</p>
                 </div>
             </div>
             <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-4 border-t border-stitch-outline/10">
-                <div><div class="flex justify-between mb-1.5"><span class="label-sm opacity-40 text-[9px] uppercase tracking-widest">&#9312; Zinskurve</span><span class="label-sm opacity-30 text-[9px]">/20Pt</span></div><div class="h-1.5 bg-stitch-surface-highest rounded-full"><div id="sb-yc" class="h-full bg-stitch-primary/60 rounded-full transition-all duration-700" style="width:0%"></div></div></div>
-                <div><div class="flex justify-between mb-1.5"><span class="label-sm opacity-40 text-[9px] uppercase tracking-widest">&#9313; Realzins</span><span class="label-sm opacity-30 text-[9px]">/15Pt</span></div><div class="h-1.5 bg-stitch-surface-highest rounded-full"><div id="sb-rr" class="h-full bg-stitch-primary/60 rounded-full transition-all duration-700" style="width:0%"></div></div></div>
-                <div><div class="flex justify-between mb-1.5"><span class="label-sm opacity-40 text-[9px] uppercase tracking-widest">&#9314; HY-Spread</span><span class="label-sm opacity-30 text-[9px]">/20Pt</span></div><div class="h-1.5 bg-stitch-surface-highest rounded-full"><div id="sb-hys" class="h-full bg-stitch-primary/60 rounded-full transition-all duration-700" style="width:0%"></div></div></div>
-                <div><div class="flex justify-between mb-1.5"><span class="label-sm opacity-40 text-[9px] uppercase tracking-widest">&#9315; Arbeitslos.</span><span class="label-sm opacity-30 text-[9px]">/15Pt</span></div><div class="h-1.5 bg-stitch-surface-highest rounded-full"><div id="sb-ur" class="h-full bg-stitch-primary/60 rounded-full transition-all duration-700" style="width:0%"></div></div></div>
-                <div><div class="flex justify-between mb-1.5"><span class="label-sm opacity-40 text-[9px] uppercase tracking-widest">&#9316; Init.Claims</span><span class="label-sm opacity-30 text-[9px]">/15Pt</span></div><div class="h-1.5 bg-stitch-surface-highest rounded-full"><div id="sb-ic" class="h-full bg-stitch-primary/60 rounded-full transition-all duration-700" style="width:0%"></div></div></div>
-                <div><div class="flex justify-between mb-1.5"><span class="label-sm opacity-40 text-[9px] uppercase tracking-widest">&#9317; Sentiment</span><span class="label-sm opacity-30 text-[9px]">/15Pt</span></div><div class="h-1.5 bg-stitch-surface-highest rounded-full"><div id="sb-cs" class="h-full bg-stitch-primary/60 rounded-full transition-all duration-700" style="width:0%"></div></div></div>
+                <div><div class="flex justify-between mb-1.5"><span class="label-sm opacity-90 text-[9px] uppercase tracking-widest">&#9312; Zinskurve</span><span class="label-sm opacity-80 text-[9px]">/20Pt</span></div><div class="h-1.5 bg-stitch-surface-highest rounded-full"><div id="sb-yc" class="h-full bg-stitch-primary/60 rounded-full transition-all duration-700" style="width:0%"></div></div></div>
+                <div><div class="flex justify-between mb-1.5"><span class="label-sm opacity-90 text-[9px] uppercase tracking-widest">&#9313; Realzins</span><span class="label-sm opacity-80 text-[9px]">/15Pt</span></div><div class="h-1.5 bg-stitch-surface-highest rounded-full"><div id="sb-rr" class="h-full bg-stitch-primary/60 rounded-full transition-all duration-700" style="width:0%"></div></div></div>
+                <div><div class="flex justify-between mb-1.5"><span class="label-sm opacity-90 text-[9px] uppercase tracking-widest">&#9314; HY-Spread</span><span class="label-sm opacity-80 text-[9px]">/20Pt</span></div><div class="h-1.5 bg-stitch-surface-highest rounded-full"><div id="sb-hys" class="h-full bg-stitch-primary/60 rounded-full transition-all duration-700" style="width:0%"></div></div></div>
+                <div><div class="flex justify-between mb-1.5"><span class="label-sm opacity-90 text-[9px] uppercase tracking-widest">&#9315; Arbeitslos.</span><span class="label-sm opacity-80 text-[9px]">/15Pt</span></div><div class="h-1.5 bg-stitch-surface-highest rounded-full"><div id="sb-ur" class="h-full bg-stitch-primary/60 rounded-full transition-all duration-700" style="width:0%"></div></div></div>
+                <div><div class="flex justify-between mb-1.5"><span class="label-sm opacity-90 text-[9px] uppercase tracking-widest">&#9316; Init.Claims</span><span class="label-sm opacity-80 text-[9px]">/15Pt</span></div><div class="h-1.5 bg-stitch-surface-highest rounded-full"><div id="sb-ic" class="h-full bg-stitch-primary/60 rounded-full transition-all duration-700" style="width:0%"></div></div></div>
+                <div><div class="flex justify-between mb-1.5"><span class="label-sm opacity-90 text-[9px] uppercase tracking-widest">&#9317; Sentiment</span><span class="label-sm opacity-80 text-[9px]">/15Pt</span></div><div class="h-1.5 bg-stitch-surface-highest rounded-full"><div id="sb-cs" class="h-full bg-stitch-primary/60 rounded-full transition-all duration-700" style="width:0%"></div></div></div>
             </div>
         </div>
 
@@ -202,11 +202,11 @@
                     <div class="flex justify-between items-start mb-6">
                         <div class="label-sm">Volatility (VIX)</div>
                         <!-- Das Badge wird per Javascript (app.js) gefärbt -->
-                        <span id="badge-vix" class="label-sm px-2 py-0.5 rounded-sm bg-stitch-surface-highest text-stitch-outline border border-stitch-outline/30 transition-all">Pending</span>
+                        <span id="badge-vix" class="label-sm px-2 py-0.5 rounded-sm bg-stitch-surface-highest text-slate-400 border border-stitch-outline/30 transition-all">Pending</span>
                     </div>
                     <!-- Diese Zahl zählt später hoch -->
                     <div class="display-lg text-white" id="val-vix">--</div>
-                    <div class="label-sm opacity-50 mt-1">Threshold: > 30.00</div>
+                    <div class="label-sm opacity-80 mt-1">Threshold: > 30.00</div>
                 </div>
                 
                 <!-- Der Fortschrittsbalken unten an der Karte -->
@@ -221,10 +221,10 @@
                 <div>
                     <div class="flex justify-between items-start mb-6">
                         <div class="label-sm">Market Trend (FTSE)</div>
-                        <span id="badge-trend" class="label-sm px-2 py-0.5 rounded-sm bg-stitch-surface-highest text-stitch-outline border border-stitch-outline/30 transition-all">Pending</span>
+                        <span id="badge-trend" class="label-sm px-2 py-0.5 rounded-sm bg-stitch-surface-highest text-slate-400 border border-stitch-outline/30 transition-all">Pending</span>
                     </div>
                     <!-- Gezählte Zahl -->
-                    <div class="display-lg text-white"><span id="val-price">--</span><span class="text-xl text-stitch-outline ml-1">EUR</span></div>
+                    <div class="display-lg text-white"><span id="val-price">--</span><span class="text-xl text-slate-400 ml-1">EUR</span></div>
                     
                     <!-- Zusatz-Info in kleinem, edlen Kasten -->
                     <div class="mt-4 bg-stitch-surface-highest/50 p-4 rounded-stitch border border-stitch-outline/20">
@@ -242,10 +242,10 @@
                 <div>
                     <div class="flex justify-between items-start mb-6">
                         <div class="label-sm">Fear & Greed</div>
-                        <span id="badge-sentiment" class="label-sm px-2 py-0.5 rounded-sm bg-stitch-surface-highest text-stitch-outline border border-stitch-outline/30 transition-all">Pending</span>
+                        <span id="badge-sentiment" class="label-sm px-2 py-0.5 rounded-sm bg-stitch-surface-highest text-slate-400 border border-stitch-outline/30 transition-all">Pending</span>
                     </div>
                     <div class="display-lg text-white" id="val-fng">--</div>
-                    <div class="label-sm opacity-50 mt-1">Threshold: < 30</div>
+                    <div class="label-sm opacity-80 mt-1">Threshold: < 30</div>
                 </div>
                 
                 <!-- Balken der sich von rechts nach links füllt (deshalb justify-end) -->
@@ -258,7 +258,7 @@
 
         <!-- ── ZUSATZ-INDIKATOREN ──────────────────────────────── -->
         <div class="mt-2">
-            <div class="label-sm opacity-40 mb-3 px-1">Zusatz-Indikatoren (informativ)</div>
+            <div class="label-sm opacity-90 mb-3 px-1">Zusatz-Indikatoren (informativ)</div>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-8">
 
                 <!-- ======== GOLDEN / DEATH CROSS KARTE ======== -->
@@ -266,12 +266,12 @@
                     <div>
                         <div class="flex justify-between items-start mb-4">
                             <div class="label-sm">SMA50 vs. SMA200</div>
-                            <span id="badge-cross" class="label-sm px-2 py-0.5 rounded-sm bg-stitch-surface-highest text-stitch-outline border border-stitch-outline/30 transition-all">Pending</span>
+                            <span id="badge-cross" class="label-sm px-2 py-0.5 rounded-sm bg-stitch-surface-highest text-slate-400 border border-stitch-outline/30 transition-all">Pending</span>
                         </div>
                         <div class="display-lg text-white" id="val-cross">--</div>
-                        <div class="label-sm opacity-50 mt-1">CROSS SIGNAL</div>
+                        <div class="label-sm opacity-80 mt-1">CROSS SIGNAL</div>
                     </div>
-                    <p id="txt-cross-expl" class="label-sm opacity-60 mt-4 leading-relaxed normal-case tracking-normal text-[11px]">Berechnung läuft...</p>
+                    <p id="txt-cross-expl" class="label-sm opacity-90 mt-4 leading-relaxed normal-case tracking-normal text-[11px]">Berechnung läuft...</p>
                 </div>
 
                 <!-- ======== SMA200 ABSTAND % KARTE ======== -->
@@ -279,12 +279,12 @@
                     <div>
                         <div class="flex justify-between items-start mb-4">
                             <div class="label-sm">Abstand zum SMA200</div>
-                            <span id="badge-sma-dist" class="label-sm px-2 py-0.5 rounded-sm bg-stitch-surface-highest text-stitch-outline border border-stitch-outline/30 transition-all">Pending</span>
+                            <span id="badge-sma-dist" class="label-sm px-2 py-0.5 rounded-sm bg-stitch-surface-highest text-slate-400 border border-stitch-outline/30 transition-all">Pending</span>
                         </div>
                         <div class="display-lg text-white" id="val-sma-dist">--</div>
-                        <div class="label-sm opacity-50 mt-1">% VOM SMA200</div>
+                        <div class="label-sm opacity-80 mt-1">% VOM SMA200</div>
                     </div>
-                    <p id="txt-sma-dist-expl" class="label-sm opacity-60 mt-4 leading-relaxed normal-case tracking-normal text-[11px]">Berechnung läuft...</p>
+                    <p id="txt-sma-dist-expl" class="label-sm opacity-90 mt-4 leading-relaxed normal-case tracking-normal text-[11px]">Berechnung läuft...</p>
                 </div>
 
                 <!-- ======== 10J TREASURY YIELD KARTE ======== -->
@@ -292,12 +292,12 @@
                     <div>
                         <div class="flex justify-between items-start mb-4">
                             <div class="label-sm">10J US-Anleihenrendite</div>
-                            <span id="badge-treasury" class="label-sm px-2 py-0.5 rounded-sm bg-stitch-surface-highest text-stitch-outline border border-stitch-outline/30 transition-all">Pending</span>
+                            <span id="badge-treasury" class="label-sm px-2 py-0.5 rounded-sm bg-stitch-surface-highest text-slate-400 border border-stitch-outline/30 transition-all">Pending</span>
                         </div>
                         <div class="display-lg text-white" id="val-treasury">--</div>
-                        <div class="label-sm opacity-50 mt-1">US 10Y TREASURY (^TNX)</div>
+                        <div class="label-sm opacity-80 mt-1">US 10Y TREASURY (^TNX)</div>
                     </div>
-                    <p id="txt-treasury-expl" class="label-sm opacity-60 mt-4 leading-relaxed normal-case tracking-normal text-[11px]">Daten werden geladen...</p>
+                    <p id="txt-treasury-expl" class="label-sm opacity-90 mt-4 leading-relaxed normal-case tracking-normal text-[11px]">Daten werden geladen...</p>
                 </div>
 
             </div>
@@ -305,7 +305,7 @@
 
         <!-- ── BEWERTUNGSINDIKATOREN ──────────────────── -->
         <div class="mt-2">
-            <div class="label-sm opacity-40 mb-3 px-1">Bewertungsindikatoren (Tier 3)</div>
+            <div class="label-sm opacity-90 mb-3 px-1">Bewertungsindikatoren (Tier 3)</div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-8">
 
                 <!-- ======== CAPE RATIO / SHILLER P/E ======== -->
@@ -317,14 +317,14 @@
                         <div class="flex justify-between items-start mb-4">
                             <div>
                                 <div class="label-sm">Buffett-Indikator</div>
-                                <div class="text-[10px] text-stitch-outline mt-0.5">FRED&#174; WILL5000/GDP &middot; quartalsweise · quartalsweise</div>
+                                <div class="text-[10px] text-slate-400 mt-0.5">FRED&#174; WILL5000/GDP &middot; quartalsweise · quartalsweise</div>
                             </div>
-                            <span id="badge-buffett" class="label-sm px-2 py-0.5 rounded-sm bg-stitch-surface-highest text-stitch-outline border border-stitch-outline/30 transition-all ml-2 shrink-0">Pending</span>
+                            <span id="badge-buffett" class="label-sm px-2 py-0.5 rounded-sm bg-stitch-surface-highest text-slate-400 border border-stitch-outline/30 transition-all ml-2 shrink-0">Pending</span>
                         </div>
                         <div class="display-lg text-white" id="val-buffett">--</div>
-                        <div class="label-sm opacity-50 mt-1">MARKTKAPITALISIERUNG / BIP USA</div>
+                        <div class="label-sm opacity-80 mt-1">MARKTKAPITALISIERUNG / BIP USA</div>
                     </div>
-                    <p id="txt-buffett-expl" class="label-sm opacity-60 mt-4 leading-relaxed normal-case tracking-normal text-[11px]">Daten werden geladen...</p>
+                    <p id="txt-buffett-expl" class="label-sm opacity-90 mt-4 leading-relaxed normal-case tracking-normal text-[11px]">Daten werden geladen...</p>
                 </div>
 
                 <!-- ======== PUT/CALL RATIO ======== -->
@@ -336,14 +336,14 @@
                         <div class="flex justify-between items-start mb-4">
                             <div>
                                 <div class="label-sm">Margin Debt</div>
-                                <div class="text-[10px] text-stitch-outline mt-0.5">Quelle: FRED® API · quartalsweise</div>
+                                <div class="text-[10px] text-slate-400 mt-0.5">Quelle: FRED® API · quartalsweise</div>
                             </div>
-                            <span id="badge-margin-debt" class="label-sm px-2 py-0.5 rounded-sm bg-stitch-surface-highest text-stitch-outline border border-stitch-outline/30 transition-all ml-2 shrink-0">Pending</span>
+                            <span id="badge-margin-debt" class="label-sm px-2 py-0.5 rounded-sm bg-stitch-surface-highest text-slate-400 border border-stitch-outline/30 transition-all ml-2 shrink-0">Pending</span>
                         </div>
                         <div class="display-lg text-white" id="val-margin-debt">--</div>
-                        <div class="label-sm opacity-50 mt-1">KREDITFINANZ. AKTIENK. (MRD. USD)</div>
+                        <div class="label-sm opacity-80 mt-1">KREDITFINANZ. AKTIENK. (MRD. USD)</div>
                     </div>
-                    <p id="txt-margin-debt-expl" class="label-sm opacity-60 mt-4 leading-relaxed normal-case tracking-normal text-[11px]">Daten werden geladen...</p>
+                    <p id="txt-margin-debt-expl" class="label-sm opacity-90 mt-4 leading-relaxed normal-case tracking-normal text-[11px]">Daten werden geladen...</p>
                 </div>
 
             </div>
@@ -351,7 +351,7 @@
 
         <!-- ── MAKRO-INDIKATOREN (FRED® API) ───────────────────────── -->
         <div class="mt-2">
-            <div class="label-sm opacity-40 mb-3 px-1">Makro-Indikatoren (via FRED® API)</div>
+            <div class="label-sm opacity-90 mb-3 px-1">Makro-Indikatoren (via FRED® API)</div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-8">
 
                 <!-- ======== ZINSKURVE (10J - 2J) ======== -->
@@ -360,14 +360,14 @@
                         <div class="flex justify-between items-start mb-4">
                             <div>
                                 <div class="label-sm">Zinskurve (10J – 2J Spread)</div>
-                                <div class="text-[10px] text-stitch-outline mt-0.5">FRED® T10Y2Y · täglich</div>
+                                <div class="text-[10px] text-slate-400 mt-0.5">FRED® T10Y2Y · täglich</div>
                             </div>
-                            <span id="badge-yield-curve" class="label-sm px-2 py-0.5 rounded-sm bg-stitch-surface-highest text-stitch-outline border border-stitch-outline/30 transition-all ml-2 shrink-0">Pending</span>
+                            <span id="badge-yield-curve" class="label-sm px-2 py-0.5 rounded-sm bg-stitch-surface-highest text-slate-400 border border-stitch-outline/30 transition-all ml-2 shrink-0">Pending</span>
                         </div>
                         <div class="display-lg text-white" id="val-yield-curve">--</div>
-                        <div class="label-sm opacity-50 mt-1">RENDITE 10J MINUS 2J US-TREASURY</div>
+                        <div class="label-sm opacity-80 mt-1">RENDITE 10J MINUS 2J US-TREASURY</div>
                     </div>
-                    <p id="txt-yield-curve-expl" class="label-sm opacity-60 mt-4 leading-relaxed normal-case tracking-normal text-[11px]">Daten werden geladen...</p>
+                    <p id="txt-yield-curve-expl" class="label-sm opacity-90 mt-4 leading-relaxed normal-case tracking-normal text-[11px]">Daten werden geladen...</p>
                 </div>
 
                 <!-- ======== REALZINS 10J (TIPS) ======== -->
@@ -376,14 +376,14 @@
                         <div class="flex justify-between items-start mb-4">
                             <div>
                                 <div class="label-sm">Realzins 10J (TIPS)</div>
-                                <div class="text-[10px] text-stitch-outline mt-0.5">FRED® DFII10 · täglich</div>
+                                <div class="text-[10px] text-slate-400 mt-0.5">FRED® DFII10 · täglich</div>
                             </div>
-                            <span id="badge-real-rate" class="label-sm px-2 py-0.5 rounded-sm bg-stitch-surface-highest text-stitch-outline border border-stitch-outline/30 transition-all ml-2 shrink-0">Pending</span>
+                            <span id="badge-real-rate" class="label-sm px-2 py-0.5 rounded-sm bg-stitch-surface-highest text-slate-400 border border-stitch-outline/30 transition-all ml-2 shrink-0">Pending</span>
                         </div>
                         <div class="display-lg text-white" id="val-real-rate">--</div>
-                        <div class="label-sm opacity-50 mt-1">10J INFLATIONSBEREINIGTER ZINS (USA)</div>
+                        <div class="label-sm opacity-80 mt-1">10J INFLATIONSBEREINIGTER ZINS (USA)</div>
                     </div>
-                    <p id="txt-real-rate-expl" class="label-sm opacity-60 mt-4 leading-relaxed normal-case tracking-normal text-[11px]">Daten werden geladen...</p>
+                    <p id="txt-real-rate-expl" class="label-sm opacity-90 mt-4 leading-relaxed normal-case tracking-normal text-[11px]">Daten werden geladen...</p>
                 </div>
 
             </div>
@@ -392,37 +392,37 @@
         
         <!-- FRED Score Engine - 6 Makro-Karten -->
         <div class="mt-2">
-            <div class="label-sm opacity-40 mb-3 px-1">Makro-Faktoren Score-Detail (via FRED&#174; API)</div>
+            <div class="label-sm opacity-90 mb-3 px-1">Makro-Faktoren Score-Detail (via FRED&#174; API)</div>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-8">
                 <div class="bg-stitch-surface/40 rounded-stitch p-5 sm:p-6 shadow-lg ghost-border ghost-border-hover transition-all duration-500 flex flex-col justify-between mobile-card">
-                    <div><div class="flex justify-between items-start mb-4"><div><div class="label-sm">Arbeitslosenquote</div><div class="text-[10px] text-stitch-outline mt-0.5">FRED&#174; UNRATE &middot; monatlich</div></div><span id="badge-unrate" class="label-sm px-2 py-0.5 rounded-sm bg-stitch-surface-highest text-stitch-outline border border-stitch-outline/30 transition-all ml-2 shrink-0">Pending</span></div>
-                    <div class="display-lg text-white" id="val-unrate">--</div><div class="label-sm opacity-50 mt-1">US-ARBEITSLOSENQUOTE (%)</div></div>
-                    <p id="txt-unrate-expl" class="label-sm opacity-60 mt-4 leading-relaxed normal-case tracking-normal text-[11px]">Daten werden geladen...</p>
+                    <div><div class="flex justify-between items-start mb-4"><div><div class="label-sm">Arbeitslosenquote</div><div class="text-[10px] text-slate-400 mt-0.5">FRED&#174; UNRATE &middot; monatlich</div></div><span id="badge-unrate" class="label-sm px-2 py-0.5 rounded-sm bg-stitch-surface-highest text-slate-400 border border-stitch-outline/30 transition-all ml-2 shrink-0">Pending</span></div>
+                    <div class="display-lg text-white" id="val-unrate">--</div><div class="label-sm opacity-80 mt-1">US-ARBEITSLOSENQUOTE (%)</div></div>
+                    <p id="txt-unrate-expl" class="label-sm opacity-90 mt-4 leading-relaxed normal-case tracking-normal text-[11px]">Daten werden geladen...</p>
                 </div>
                 <div class="bg-stitch-surface/40 rounded-stitch p-5 sm:p-6 shadow-lg ghost-border ghost-border-hover transition-all duration-500 flex flex-col justify-between mobile-card">
-                    <div><div class="flex justify-between items-start mb-4"><div><div class="label-sm">Initial Jobless Claims</div><div class="text-[10px] text-stitch-outline mt-0.5">FRED&#174; ICSA &middot; woechentlich (4w-Avg)</div></div><span id="badge-icsa" class="label-sm px-2 py-0.5 rounded-sm bg-stitch-surface-highest text-stitch-outline border border-stitch-outline/30 transition-all ml-2 shrink-0">Pending</span></div>
-                    <div class="display-lg text-white" id="val-icsa">--</div><div class="label-sm opacity-50 mt-1">ERSTANTRAEGE ARBEITSLOSENGELD</div></div>
-                    <p id="txt-icsa-expl" class="label-sm opacity-60 mt-4 leading-relaxed normal-case tracking-normal text-[11px]">Daten werden geladen...</p>
+                    <div><div class="flex justify-between items-start mb-4"><div><div class="label-sm">Initial Jobless Claims</div><div class="text-[10px] text-slate-400 mt-0.5">FRED&#174; ICSA &middot; woechentlich (4w-Avg)</div></div><span id="badge-icsa" class="label-sm px-2 py-0.5 rounded-sm bg-stitch-surface-highest text-slate-400 border border-stitch-outline/30 transition-all ml-2 shrink-0">Pending</span></div>
+                    <div class="display-lg text-white" id="val-icsa">--</div><div class="label-sm opacity-80 mt-1">ERSTANTRAEGE ARBEITSLOSENGELD</div></div>
+                    <p id="txt-icsa-expl" class="label-sm opacity-90 mt-4 leading-relaxed normal-case tracking-normal text-[11px]">Daten werden geladen...</p>
                 </div>
                 <div class="bg-stitch-surface/40 rounded-stitch p-5 sm:p-6 shadow-lg ghost-border ghost-border-hover transition-all duration-500 flex flex-col justify-between mobile-card">
-                    <div><div class="flex justify-between items-start mb-4"><div><div class="label-sm">High-Yield Spread</div><div class="text-[10px] text-stitch-outline mt-0.5">FRED&#174; BAMLH0A0HYM2 &middot; taeglich</div></div><span id="badge-hys" class="label-sm px-2 py-0.5 rounded-sm bg-stitch-surface-highest text-stitch-outline border border-stitch-outline/30 transition-all ml-2 shrink-0">Pending</span></div>
-                    <div class="display-lg text-white" id="val-hys">--</div><div class="label-sm opacity-50 mt-1">KREDIT-RISIKOAUFSCHLAG (%)</div></div>
-                    <p id="txt-hys-expl" class="label-sm opacity-60 mt-4 leading-relaxed normal-case tracking-normal text-[11px]">Daten werden geladen...</p>
+                    <div><div class="flex justify-between items-start mb-4"><div><div class="label-sm">High-Yield Spread</div><div class="text-[10px] text-slate-400 mt-0.5">FRED&#174; BAMLH0A0HYM2 &middot; taeglich</div></div><span id="badge-hys" class="label-sm px-2 py-0.5 rounded-sm bg-stitch-surface-highest text-slate-400 border border-stitch-outline/30 transition-all ml-2 shrink-0">Pending</span></div>
+                    <div class="display-lg text-white" id="val-hys">--</div><div class="label-sm opacity-80 mt-1">KREDIT-RISIKOAUFSCHLAG (%)</div></div>
+                    <p id="txt-hys-expl" class="label-sm opacity-90 mt-4 leading-relaxed normal-case tracking-normal text-[11px]">Daten werden geladen...</p>
                 </div>
                 <div class="bg-stitch-surface/40 rounded-stitch p-5 sm:p-6 shadow-lg ghost-border ghost-border-hover transition-all duration-500 flex flex-col justify-between mobile-card">
-                    <div><div class="flex justify-between items-start mb-4"><div><div class="label-sm">Fed Leitzins</div><div class="text-[10px] text-stitch-outline mt-0.5">FRED&#174; FEDFUNDS &middot; monatlich</div></div><span id="badge-fedfunds" class="label-sm px-2 py-0.5 rounded-sm bg-stitch-surface-highest text-stitch-outline border border-stitch-outline/30 transition-all ml-2 shrink-0">Pending</span></div>
-                    <div class="display-lg text-white" id="val-fedfunds">--</div><div class="label-sm opacity-50 mt-1">FEDERAL FUNDS RATE (%)</div></div>
-                    <p id="txt-fedfunds-expl" class="label-sm opacity-60 mt-4 leading-relaxed normal-case tracking-normal text-[11px]">Daten werden geladen...</p>
+                    <div><div class="flex justify-between items-start mb-4"><div><div class="label-sm">Fed Leitzins</div><div class="text-[10px] text-slate-400 mt-0.5">FRED&#174; FEDFUNDS &middot; monatlich</div></div><span id="badge-fedfunds" class="label-sm px-2 py-0.5 rounded-sm bg-stitch-surface-highest text-slate-400 border border-stitch-outline/30 transition-all ml-2 shrink-0">Pending</span></div>
+                    <div class="display-lg text-white" id="val-fedfunds">--</div><div class="label-sm opacity-80 mt-1">FEDERAL FUNDS RATE (%)</div></div>
+                    <p id="txt-fedfunds-expl" class="label-sm opacity-90 mt-4 leading-relaxed normal-case tracking-normal text-[11px]">Daten werden geladen...</p>
                 </div>
                 <div class="bg-stitch-surface/40 rounded-stitch p-5 sm:p-6 shadow-lg ghost-border ghost-border-hover transition-all duration-500 flex flex-col justify-between mobile-card">
-                    <div><div class="flex justify-between items-start mb-4"><div><div class="label-sm">EUR / USD</div><div class="text-[10px] text-stitch-outline mt-0.5">FRED&#174; DEXUSEU &middot; taeglich</div></div><span id="badge-eurusd" class="label-sm px-2 py-0.5 rounded-sm bg-stitch-surface-highest text-stitch-outline border border-stitch-outline/30 transition-all ml-2 shrink-0">Pending</span></div>
-                    <div class="display-lg text-white" id="val-eurusd">--</div><div class="label-sm opacity-50 mt-1">EURO / US-DOLLAR KURS</div></div>
-                    <p id="txt-eurusd-expl" class="label-sm opacity-60 mt-4 leading-relaxed normal-case tracking-normal text-[11px]">Daten werden geladen...</p>
+                    <div><div class="flex justify-between items-start mb-4"><div><div class="label-sm">EUR / USD</div><div class="text-[10px] text-slate-400 mt-0.5">FRED&#174; DEXUSEU &middot; taeglich</div></div><span id="badge-eurusd" class="label-sm px-2 py-0.5 rounded-sm bg-stitch-surface-highest text-slate-400 border border-stitch-outline/30 transition-all ml-2 shrink-0">Pending</span></div>
+                    <div class="display-lg text-white" id="val-eurusd">--</div><div class="label-sm opacity-80 mt-1">EURO / US-DOLLAR KURS</div></div>
+                    <p id="txt-eurusd-expl" class="label-sm opacity-90 mt-4 leading-relaxed normal-case tracking-normal text-[11px]">Daten werden geladen...</p>
                 </div>
                 <div class="bg-stitch-surface/40 rounded-stitch p-5 sm:p-6 shadow-lg ghost-border ghost-border-hover transition-all duration-500 flex flex-col justify-between mobile-card">
-                    <div><div class="flex justify-between items-start mb-4"><div><div class="label-sm">Consumer Sentiment</div><div class="text-[10px] text-stitch-outline mt-0.5">FRED&#174; UMCSENT &middot; monatlich</div></div><span id="badge-umcsent" class="label-sm px-2 py-0.5 rounded-sm bg-stitch-surface-highest text-stitch-outline border border-stitch-outline/30 transition-all ml-2 shrink-0">Pending</span></div>
-                    <div class="display-lg text-white" id="val-umcsent">--</div><div class="label-sm opacity-50 mt-1">VERBRAUCHERVERTRAUEN (UMICH)</div></div>
-                    <p id="txt-umcsent-expl" class="label-sm opacity-60 mt-4 leading-relaxed normal-case tracking-normal text-[11px]">Daten werden geladen...</p>
+                    <div><div class="flex justify-between items-start mb-4"><div><div class="label-sm">Consumer Sentiment</div><div class="text-[10px] text-slate-400 mt-0.5">FRED&#174; UMCSENT &middot; monatlich</div></div><span id="badge-umcsent" class="label-sm px-2 py-0.5 rounded-sm bg-stitch-surface-highest text-slate-400 border border-stitch-outline/30 transition-all ml-2 shrink-0">Pending</span></div>
+                    <div class="display-lg text-white" id="val-umcsent">--</div><div class="label-sm opacity-80 mt-1">VERBRAUCHERVERTRAUEN (UMICH)</div></div>
+                    <p id="txt-umcsent-expl" class="label-sm opacity-90 mt-4 leading-relaxed normal-case tracking-normal text-[11px]">Daten werden geladen...</p>
                 </div>
             </div>
         </div>
@@ -430,7 +430,7 @@
 
         <!-- ── FRED® PFLICHT-ATTRIBUTION (Terms of Use) ──────────── -->
         <div class="mt-8 mb-4 px-1">
-            <p class="text-[10px] text-stitch-outline/40 text-center leading-relaxed">
+            <p class="text-[10px] text-slate-400/40 text-center leading-relaxed">
                 This product uses the FRED® API but is not endorsed or certified by the Federal Reserve Bank of St. Louis.
             </p>
         </div>
@@ -449,7 +449,7 @@
     <div id="manual-install-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-stitch-bg/90 backdrop-blur-xl" style="display:none;">
         <div class="bg-stitch-surface border border-stitch-outline/30 rounded-stitch p-12 max-w-md w-full shadow-2xl m-4">
             
-            <div class="label-sm mb-2 opacity-50 text-center">Protocol</div>
+            <div class="label-sm mb-2 opacity-80 text-center">Protocol</div>
             <h3 class="text-3xl font-black text-white mb-8 text-center tracking-tighter uppercase">Initialize PWA</h3>
 
             <button id="btn-native-install" class="w-full bg-stitch-primary hover:bg-white text-stitch-on-primary font-black py-5 rounded-stitch mb-8 shadow-xl transition-all hidden uppercase tracking-widest text-xs">

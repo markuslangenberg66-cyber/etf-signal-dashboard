@@ -1,17 +1,17 @@
 {
-  "timestamp": "2026-04-13T16:12:56Z",
+  "timestamp": "2026-04-13T18:01:14Z",
   "vix": 19.23,
   "ftse_price": null,
   "sma200": null,
-  "fng": 38.7714285714286,
+  "fng": 39.4,
   "yield_curve": 0.5,
   "real_rate": 1.95,
   "margin_debt": 609.7,
-  "buffett": 158.4,
+  "buffett": null,
   "unrate": 4.3,
   "icsa": 209500,
   "hys": 2.94,
   "fedfunds": 3.64,
-  "eurusd": null,
-  "umcsent": 56.6
+  "eurusd": 1.1523,
+  "umcsent": null
 }

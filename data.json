@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-04-22T22:48:26Z",
+  "timestamp": "2026-04-22T23:45:46Z",
   "vix": 19.5,
   "ftse_price": null,
   "sma200": null,
@@ -7,7 +7,7 @@
   "yield_curve": 0.51,
   "real_rate": 1.92,
   "margin_debt": 609.7,
-  "buffett": 164.1,
+  "buffett": null,
   "unrate": 4.3,
   "icsa": 209750,
   "hys": 2.85,

@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-05-06T21:57:18Z",
+  "timestamp": "2026-05-06T22:56:23Z",
   "vix": 17.38,
   "ftse_price": null,
   "sma200": null,
@@ -12,6 +12,6 @@
   "icsa": 207500,
   "hys": 2.77,
   "fedfunds": 3.64,
-  "eurusd": null,
+  "eurusd": 1.1755,
   "umcsent": 53.3
 }

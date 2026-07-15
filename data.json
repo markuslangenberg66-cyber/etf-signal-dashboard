@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-07-15T21:59:49Z",
+  "timestamp": "2026-07-15T23:06:08Z",
   "vix": 16.5,
   "ftse_price": null,
   "sma200": null,
@@ -9,9 +9,9 @@
   "margin_debt": 622.2,
   "buffett": 172.8,
   "unrate": null,
-  "icsa": null,
-  "hys": null,
-  "fedfunds": null,
-  "eurusd": null,
-  "umcsent": null
+  "icsa": 218750,
+  "hys": 2.72,
+  "fedfunds": 3.63,
+  "eurusd": 1.1438,
+  "umcsent": 44.8
 }

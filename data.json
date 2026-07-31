@@ -1,9 +1,9 @@
 {
-  "timestamp": "2026-07-31T18:20:18Z",
+  "timestamp": "2026-07-31T20:19:51Z",
   "vix": 17.09,
   "ftse_price": null,
   "sma200": null,
-  "fng": 43.6,
+  "fng": 42.4571428571429,
   "yield_curve": 0.45,
   "real_rate": 2.41,
   "margin_debt": 622.2,

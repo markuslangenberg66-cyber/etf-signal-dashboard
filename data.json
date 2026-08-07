@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-08-07T10:00:32Z",
+  "timestamp": "2026-08-07T11:43:57Z",
   "vix": 15.15,
   "ftse_price": null,
   "sma200": null,
@@ -9,7 +9,7 @@
   "margin_debt": 622.2,
   "buffett": 173.3,
   "unrate": 4.2,
-  "icsa": null,
+  "icsa": 198750,
   "hys": 2.75,
   "fedfunds": 3.63,
   "eurusd": 1.1519,

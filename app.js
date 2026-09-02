@@ -111,7 +111,8 @@ let state = {
     umcsent:    { value: null },    // UMich Consumer Sentiment 0-100+
     compositeScore: null,           // Berechneter Score 0-100
     scoreBreakdown: {},             // Faktor-Aufschlüsselung
-    lastUpdated: null
+    lastUpdated: null,
+    fromCache: []
 };
 
 // Hilfsfunktion: Macht aus "1234.5" eine deutsche schöne Zahl: "1.234,50"
@@ -149,9 +150,13 @@ function animateValue(obj, targetValue, isDecimal = false) {
 // Browser können keine Daten von externen APIs laden, weil die
 // Browser-Sicherheit (CORS) das blockiert. Wir nutzen mehrere
 // Proxy-Dienste als Vermittler (Fallback-Kette).
+// Hinweis: corsproxy.io verlangt seit 2026 einen API-Key (HTTP 401) und
+// wurde deshalb entfernt. Faellt die ganze Kette aus, greift der
+// data.json-Fallback (siehe loadData) - das Dashboard bleibt nutzbar.
 const CORS_PROXIES = [
-    'https://corsproxy.io/?url=',
     'https://api.allorigins.win/raw?url=',
+    'https://api.codetabs.com/v1/proxy?quest=',
+    'https://api.cors.lol/?url=',
 ];
 
 async function fetchWithProxy(url, timeout = 25000) {
@@ -384,14 +389,41 @@ async function loadData() {
         realRate: realRateFRED, buffett: buffettFRED
     });
 
+    // Fallback: Was live nicht geladen werden konnte, kommt aus data.json.
+    // data.json wird stuendlich serverseitig per GitHub Action erzeugt und
+    // liegt auf derselben Domain - also kein CORS und kein Proxy noetig.
+    const usedFallback = [];
+    const withFallback = (live, key, label) => {
+        if (live !== null && live !== undefined) return live;
+        const cached = fredData[key];
+        if (cached === null || cached === undefined) return null;
+        usedFallback.push(label);
+        return cached;
+    };
+
+    const vix      = withFallback(vixResult, 'vix', 'VIX');
+    const fng      = withFallback(fngResult, 'fng', 'F&G');
+    const treasury = withFallback(treasuryResult, 'treasury', 'Treasury');
+    const price    = withFallback(ftseResult ? ftseResult.price  : null, 'ftse_price', 'FTSE');
+    const sma200   = withFallback(ftseResult ? ftseResult.sma200 : null, 'sma200', 'SMA200');
+    const sma50    = withFallback(ftseResult ? ftseResult.sma50  : null, 'sma50',  'SMA50');
+
+    if (usedFallback.length) {
+        console.warn('[Fallback] Werte aus data.json statt Live-API:', usedFallback.join(', '));
+    }
+
     return {
-        timestamp:   new Date().toISOString(),
-        vix:         vixResult,
-        ftse_price:  ftseResult ? ftseResult.price  : null,
-        sma200:      ftseResult ? ftseResult.sma200  : null,
-        sma50:       ftseResult ? ftseResult.sma50   : null,
-        fng:         fngResult,
-        treasury:    treasuryResult,
+        // Zeitstempel der Daten: bei reinem Fallback der Stand von data.json
+        timestamp:   (usedFallback.length && fredData.timestamp)
+                        ? fredData.timestamp
+                        : new Date().toISOString(),
+        fromCache:   usedFallback,
+        vix:         vix,
+        ftse_price:  price,
+        sma200:      sma200,
+        sma50:       sma50,
+        fng:         fng,
+        treasury:    treasury,
         buffett:     buffettFRED,       // FRED: WILL5000INDFC / GDP * 100
         marginDebt:  marginDebtFRED,
         yieldCurve:  yieldCurveFRED,
@@ -1037,8 +1069,11 @@ function updateUI() {
 
     // Aktualisierungszeit ganz oben
     if (state.lastUpdated) {
-        el.updateTime.innerText = 'Stand: ' + 
-            state.lastUpdated.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+        const t = state.lastUpdated.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+        // Kennzeichnen, wenn Werte aus data.json statt aus der Live-API stammen
+        el.updateTime.innerText = state.fromCache.length
+            ? `Stand: ${t} (Cache: ${state.fromCache.join(', ')})`
+            : `Stand: ${t}`;
     }
 }
 
@@ -1109,6 +1144,7 @@ async function refreshData() {
         if (d.umcsent  != null)    { state.umcsent.value     = d.umcsent; }
         // Score berechnen
         calculateCompositeScore();
+        state.fromCache = d.fromCache || [];
         if (d.timestamp) {
             state.lastUpdated = new Date(d.timestamp);
         }

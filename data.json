@@ -1,9 +1,9 @@
 {
-  "timestamp": "2026-09-22T21:47:33Z",
+  "timestamp": "2026-09-23T00:01:38Z",
   "vix": 14.87,
-  "ftse_price": 170.5,
-  "sma200": 156.1237,
-  "sma50": 166.4752,
+  "ftse_price": 169.48,
+  "sma200": 155.9921,
+  "sma50": 166.3784,
   "fng": 35.2571428571429,
   "treasury": 4.96,
   "yield_curve": 0.25,
@@ -12,7 +12,7 @@
   "buffett": 174.5,
   "unrate": 4.1,
   "icsa": 203250,
-  "hys": 2.68,
+  "hys": 2.66,
   "fedfunds": 3.63,
   "eurusd": 1.1464,
   "umcsent": 55.2

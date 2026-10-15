@@ -1,13 +1,13 @@
 {
-  "timestamp": "2026-10-15T18:00:42Z",
+  "timestamp": "2026-10-15T21:57:02Z",
   "vix": 16.87,
   "ftse_price": 170.94,
-  "sma200": 158.2848,
-  "sma50": 168.6024,
-  "fng": 32.0,
-  "treasury": 5.21,
-  "yield_curve": 0.37,
-  "real_rate": 2.88,
+  "sma200": 158.4215,
+  "sma50": 168.6952,
+  "fng": 31.5428571428571,
+  "treasury": 5.19,
+  "yield_curve": 0.33,
+  "real_rate": 2.84,
   "margin_debt": 742.3,
   "buffett": 173.0,
   "unrate": 4.2,
@@ -15,5 +15,5 @@
   "hys": 3.25,
   "fedfunds": 3.75,
   "eurusd": 1.1193,
-  "umcsent": null
+  "umcsent": 51.7
 }

@@ -648,7 +648,18 @@ function updateUI() {
 
             // Faktor-Mini-Bars aktualisieren
             const bd = state.scoreBreakdown;
-            const setBar = (el, pts, max) => { if(el) el.style.width = (max > 0 ? Math.round((pts/max)*100) : 0) + '%'; };
+            // Balken setzen UND die erreichten Punkte daneben schreiben
+            // (vorher stand dort nur "/15Pt" - ein leerer Balken bei 0 Punkten
+            // sah dadurch aus, als fehle der Wert).
+            const setBar = (bar, pts, max) => {
+                if (!bar) return;
+                bar.style.width = (max > 0 ? Math.round((pts / max) * 100) : 0) + '%';
+                const lbl = bar.parentElement?.previousElementSibling?.lastElementChild;
+                if (lbl) {
+                    lbl.innerText = `${pts}/${max} Pt`;
+                    lbl.classList.toggle('text-stitch-error', pts === 0);
+                }
+            };
             setBar(el.sbYc,  bd.yieldCurve?.pts ?? 0, bd.yieldCurve?.max ?? 20);
             setBar(el.sbRr,  bd.realRate?.pts   ?? 0, bd.realRate?.max   ?? 15);
             setBar(el.sbHys, bd.hys?.pts        ?? 0, bd.hys?.max        ?? 20);

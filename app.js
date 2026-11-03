@@ -112,8 +112,12 @@ let state = {
     compositeScore: null,           // Berechneter Score 0-100
     scoreBreakdown: {},             // Faktor-Aufschlüsselung
     lastUpdated: null,
-    fromCache: []
+    stale: []
 };
+
+// Leerer Ausgangszustand - wird vor jedem Laden wiederhergestellt, damit
+// nie ein alter Wert aus einem frueheren Abruf unbemerkt stehen bleibt.
+const EMPTY_STATE = JSON.parse(JSON.stringify(state));
 
 // Hilfsfunktion: Macht aus "1234.5" eine deutsche schöne Zahl: "1.234,50"
 const fmt = (n, d = 2) => n != null
@@ -146,295 +150,64 @@ function animateValue(obj, targetValue, isDecimal = false) {
     }, duration / steps);
 }
 
-// ── CORS-Proxy Helfer ───────────────────────────────────────
-// Browser können keine Daten von externen APIs laden, weil die
-// Browser-Sicherheit (CORS) das blockiert. Wir nutzen mehrere
-// Proxy-Dienste als Vermittler (Fallback-Kette).
-// Hinweis: corsproxy.io verlangt seit 2026 einen API-Key (HTTP 401) und
-// wurde deshalb entfernt. Faellt die ganze Kette aus, greift der
-// data.json-Fallback (siehe loadData) - das Dashboard bleibt nutzbar.
-const CORS_PROXIES = [
-    'https://api.allorigins.win/raw?url=',
-    'https://api.codetabs.com/v1/proxy?quest=',
-    'https://api.cors.lol/?url=',
-];
+// ── DATENQUELLE: data.json ──────────────────────────────────
+// Alle Werte kommen aus data.json. Diese Datei erzeugt eine GitHub Action
+// alle 30 Minuten serverseitig (Yahoo, CNN, CBOE, FRED) und legt sie auf
+// derselben Domain ab - kein CORS, kein Proxy, keine Wartezeit.
+//
+// Frueher holte der Browser VIX, Kurs, Fear & Greed und Treasury zusaetzlich
+// "live" ueber kostenlose CORS-Proxies (allorigins, codetabs, cors.lol).
+// Die sind alle ausgefallen: Jeder Seitenaufruf wartete ~1 Minute auf
+// Timeouts und zeigte danach doch nur die data.json-Werte ("Cache: ...").
+// Deshalb wurde die Proxy-Kette entfernt.
 
-async function fetchWithProxy(url, timeout = 25000) {
-    for (const proxy of CORS_PROXIES) {
-        const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), timeout);
-        try {
-            const res = await fetch(proxy + encodeURIComponent(url), {
-                signal: controller.signal,
-                cache: 'no-store'
-            });
-            clearTimeout(timer);
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            return res;
-        } catch(e) {
-            clearTimeout(timer);
-            console.warn(`Proxy ${proxy} fehlgeschlagen:`, e.message);
-            // Nächsten Proxy versuchen
-        }
-    }
-    throw new Error('Alle CORS-Proxies fehlgeschlagen');
-}
+// Ab diesem Alter gilt ein Wert als veraltet (Stunden)
+const STALE_HOURS = 6;
 
-// ── LIVE-API: VIX von Yahoo Finance ────────────────────────
-// Einzige Quelle: Yahoo Finance. Kein Fallback.
-async function fetchVIX() {
-    const url = 'https://query1.finance.yahoo.com/v8/finance/chart/%5EVIX?range=5d&interval=1d';
-    const res = await fetchWithProxy(url);
-    const data = await res.json();
-    const meta = data.chart.result[0].meta;
-    const vix = parseFloat(meta.regularMarketPrice || meta.previousClose);
-    if (!vix || vix <= 0) throw new Error('Ungültiger VIX-Wert erhalten');
-    console.log('[VIX] Yahoo Wert:', vix);
-    return vix;
-}
+const FIELD_LABELS = {
+    vix: 'VIX', ftse_price: 'Kurs', sma200: 'SMA200', sma50: 'SMA50',
+    fng: 'F&G', treasury: 'Treasury', yield_curve: 'Zinskurve',
+    real_rate: 'Realzins', margin_debt: 'Margin Debt', buffett: 'Buffett',
+    unrate: 'Arbeitslosenquote', icsa: 'Jobless Claims', hys: 'HY-Spread',
+    fedfunds: 'Fed Funds', eurusd: 'EUR/USD', umcsent: 'Konsumklima'
+};
 
-// ── LIVE-API: FTSE/VWCE Kurs, SMA200 & SMA50 von Yahoo Finance ─
-// Einzige Quelle: Yahoo Finance. Kein Fallback.
-async function fetchFTSE() {
-    const url = 'https://query1.finance.yahoo.com/v8/finance/chart/VWCE.DE?range=1y&interval=1d';
-    const res = await fetchWithProxy(url);
-    const data = await res.json();
-    const result = data.chart.result[0];
-    const closes = result.indicators.quote[0].close.filter(v => v !== null);
-    if (closes.length < 10) throw new Error('Zu wenige Datenpunkte von Yahoo');
-    const price  = closes[closes.length - 1];
-    const last200 = closes.slice(-200);
-    const last50  = closes.slice(-50);
-    const sma200 = last200.reduce((a, b) => a + b, 0) / last200.length;
-    const sma50  = last50.reduce((a, b) => a + b, 0) / last50.length;
-    console.log('[FTSE] Yahoo Wert:', price, 'SMA200:', sma200, 'SMA50:', sma50);
-    return {
-        price:  Math.round(price  * 100)   / 100,
-        sma200: Math.round(sma200 * 10000) / 10000,
-        sma50:  Math.round(sma50  * 10000) / 10000
-    };
-}
-
-// ── LIVE-API: CNN Fear & Greed Index (Aktienmarkt) ──────────
-// Einzige Quelle: CNN. Kein Fallback.
-async function fetchFearGreed() {
-    const url = 'https://production.dataviz.cnn.io/index/fearandgreed/graphdata';
-    const res = await fetchWithProxy(url);
-    const data = await res.json();
-    const fng = parseFloat(data.fear_and_greed.score);
-    if (isNaN(fng)) throw new Error('Ungültiger F&G-Wert von CNN');
-    console.log('[F&G] CNN Aktienmarkt-Wert:', fng);
-    return fng;
-}
-
-// ── LIVE-API: 10-Jährige US-Anleihenrendite (^TNX) ──────────
-// Einzige Quelle: Yahoo Finance. Kein Fallback.
-async function fetchTreasuryYield() {
-    const url = 'https://query1.finance.yahoo.com/v8/finance/chart/%5ETNX?range=5d&interval=1d';
-    const res = await fetchWithProxy(url);
-    const data = await res.json();
-    const meta = data.chart.result[0].meta;
-    const yield10y = parseFloat(meta.regularMarketPrice || meta.previousClose);
-    if (!yield10y || yield10y <= 0) throw new Error('Ungültiger Treasury-Wert');
-    console.log('[Treasury] 10J-Rendite:', yield10y);
-    return yield10y;
-}
-// ── LIVE-API: CAPE Ratio / Shiller P/E (multpl.com) ──────────
-// Einzige Quelle: multpl.com. Kein Fallback.
-// Hinweis: Monatlich aktualisiert.
-async function fetchCapeRatio() {
-    const url = 'https://www.multpl.com/shiller-pe';
-    const res = await fetchWithProxy(url);
-    const html = await res.text();
-    // Mehrere Muster probieren, da multpl.com das Format gelegentlich ändert
-    // Format 1: id="current">38.00 (einfach)
-    // Format 2: "Current Shiller PE Ratio: 38.00" (in Text)
-    // Format 3: id="current-value">38.00
-    const patterns = [
-        /id=["']current["'][^>]*>\s*([0-9]+\.?[0-9]*)/,
-        /Current Shiller PE Ratio[:\s]+([0-9]+\.?[0-9]*)/i,
-        /Shiller PE Ratio[^0-9]*([0-9]+\.?[0-9]*)/i,
-        /<span[^>]+id=["'][^"']*current[^"']*["'][^>]*>\s*([0-9]+\.?[0-9]*)/i
-    ];
-    for (const pattern of patterns) {
-        const match = html.match(pattern);
-        if (match) {
-            const val = parseFloat(match[1]);
-            if (!isNaN(val) && val > 5 && val < 200) {
-                console.log('[CAPE] Shiller P/E:', val);
-                return val;
-            }
-        }
-    }
-    throw new Error('CAPE: Kein gültiger Wert auf multpl.com/shiller-pe gefunden');
-}
-
-// ── LIVE-API: Buffett-Indikator (currentmarketvaluation.com) ───
-// multpl.com hat die Seite entfernt (404).
-// Neue Quelle: currentmarketvaluation.com. Kein Fallback.
-// Alternativ: Berechnung aus Yahoo Finance Wilshire 5000 + FRED GDP.
-async function fetchBuffettIndicator() {
-    // Ansatz: Wilshire 5000 Total Market Cap via Yahoo Finance (^W5000)
-    // geteilt durch das US-BIP (via FRED ohne Key als statischer Referenzwert ~29000 Mrd.)
-    // Da GDP nur quartalsweise verfügbar: Wir holen Wilshire 5000 Niveau und
-    // vergleichen mit dem jetzigen BIP-Schätzwert.
-    // Sauberste kostenlose Methode: currentmarketvaluation.com scrapen.
-    const url = 'https://currentmarketvaluation.com/models/buffett-indicator';
-    const res = await fetchWithProxy(url);
-    const html = await res.text();
-    // Die Seite zeigt typisch: "175.2%" oder "current ratio is 175%"
-    const patterns = [
-        /current(?:\s+ratio)?(?:\s+is)?[:\s]+([0-9]+\.?[0-9]*)\s*%/i,
-        /Buffett\s+Indicator[^0-9]*([0-9]+\.?[0-9]*)\s*%/i,
-        /Market\s+Cap.*?GDP[^0-9]*([0-9]+\.?[0-9]*)\s*%/i,
-        /([1-2][0-9]{2}(?:\.[0-9]*)?)\s*%/    // Zahl im Bereich 100-299%
-    ];
-    for (const pattern of patterns) {
-        const match = html.match(pattern);
-        if (match) {
-            const val = parseFloat(match[1]);
-            if (!isNaN(val) && val > 50 && val < 400) {
-                console.log('[Buffett] Indikator:', val, '%');
-                return val;
-            }
-        }
-    }
-    throw new Error('Buffett: Kein gültiger Wert auf currentmarketvaluation.com gefunden');
-}
-
-// ── LIVE-API: Put/Call Ratio (CBOE Statistik-Seite HTML) ───
-// CBOE CDN blockiert direkte JSON-Requests (403).
-// Neuer Ansatz: CBOE Statistik-Seite scrapen.
-async function fetchPutCallRatio() {
-    const url = 'https://www.cboe.com/us/options/market_statistics/daily/';
-    const res = await fetchWithProxy(url);
-    const html = await res.text();
-    // Die CBOE-Seite zeigt Zeilen wie:
-    // "Total Put/Call Ratio" | 0.99
-    // "Equity Put/Call Ratio" | 0.56
-    // Wir wollen "Equity Put/Call" (genauer für Stimmungsindikator)
-    const patterns = [
-        /Equity\s+Put\/?Call\s+Ratio[^0-9]*([0-9]+\.[0-9]+)/i,
-        /Equity[^<]{0,50}Put\/?Call[^0-9]*([0-9]+\.[0-9]+)/i,
-        /Total\s+Put\/?Call\s+Ratio[^0-9]*([0-9]+\.[0-9]+)/i,
-        /([0-9]+\.[0-9]{2})(?=\s*<\/td>)/  // Erste Dezimalzahl als Fallback
-    ];
-    for (const pattern of patterns) {
-        const match = html.match(pattern);
-        if (match) {
-            const val = parseFloat(match[1]);
-            if (!isNaN(val) && val > 0.1 && val < 5) {
-                console.log('[Put/Call] CBOE Equity PCR:', val);
-                return val;
-            }
-        }
-    }
-    throw new Error('Put/Call: Kein gültiger Wert auf CBOE-Seite gefunden');
-}
-
-// ── LIVE-API: Margin Debt (FINRA HTML-Scraping) ────────────
-// Einzige Quelle: FINRA Margin Statistics. Kein Fallback.
-// Hinweis: Monatlich aktualisiert. Wert in Millionen USD.
-async function fetchMarginDebt() {
-    const url = 'https://www.finra.org/investors/learn-to-invest/advanced-investing/margin-statistics';
-    const res = await fetchWithProxy(url);
-    const html = await res.text();
-    // Suche nach einer großen Zahl (mindestens 6 Ziffern) in der Debittabelle
-    // Typisch: 756,123 oder 756123 (in Millionen USD)
-    const patterns = [
-        /Debit[^<]{0,200}?([4-9]\d{2},\d{3})/si,
-        /([4-9]\d{2},\d{3})(?=.*million|.*USD|.*\$)/si,
-        /<td[^>]*>\s*([4-9]\d{2},\d{3})\s*<\/td>/i
-    ];
-    for (const pattern of patterns) {
-        const match = html.match(pattern);
-        if (match) {
-            const val = parseFloat(match[1].replace(/,/g, ''));
-            if (!isNaN(val) && val > 100000) {
-                const billions = val / 1000;
-                console.log('[Margin Debt] FINRA:', billions.toFixed(1), 'Mrd. USD');
-                return billions; // Rückgabe in Milliarden USD
-            }
-        }
-    }
-    throw new Error('Margin Debt: Daten konnten nicht aus FINRA-Seite extrahiert werden');
-}
-
-// Wenn eine API nicht erreichbar ist, bleibt der Wert null.
-// Die UI zeigt dann eine klare Fehlermeldung statt alter Daten.
 async function loadData() {
-    console.log('[Dashboard] Starte Live-Datenabfrage...');
+    console.log('[Dashboard] Lade data.json ...');
+    const res = await fetch('./data.json?t=' + Date.now(), { cache: 'no-store' });
+    if (!res.ok) throw new Error(`data.json: HTTP ${res.status}`);
+    const d = await res.json();
 
-    // Parallel: Live-Daten + data.json (fuer FRED-Werte aus GitHub Action)
-    // CAPE + Buffett + PCR via Scraping entfernt – CAPE/PCR haben keine zuverlaessige Quelle,
-    // Buffett kommt jetzt sauber via FRED (WILL5000INDFC / GDP)
-    const [vixResult, ftseResult, fngResult, treasuryResult, fredData] = await Promise.all([
-        fetchVIX().catch(e           => { console.error('[VIX] FEHLER:', e.message);   return null; }),
-        fetchFTSE().catch(e          => { console.error('[FTSE] FEHLER:', e.message);  return null; }),
-        fetchFearGreed().catch(e     => { console.error('[F&G] FEHLER:', e.message);   return null; }),
-        fetchTreasuryYield().catch(e => { console.error('[TNX] FEHLER:', e.message);   return null; }),
-        // FRED-Daten aus data.json (sicher, kein API-Key im Browser)
-        fetch('./data.json?t=' + Date.now(), { cache: 'no-store' })
-            .then(r => r.ok ? r.json() : {})
-            .catch(() => ({}))
-    ]);
-
-    const marginDebtFRED = fredData.margin_debt  ?? null;
-    const yieldCurveFRED = fredData.yield_curve  ?? null;
-    const realRateFRED   = fredData.real_rate     ?? null;
-    const buffettFRED    = fredData.buffett       ?? null;  // via WILL5000INDFC/GDP
-
-    console.log('[FRED] Aus data.json:', {
-        marginDebt: marginDebtFRED, yieldCurve: yieldCurveFRED,
-        realRate: realRateFRED, buffett: buffettFRED
-    });
-
-    // Fallback: Was live nicht geladen werden konnte, kommt aus data.json.
-    // data.json wird stuendlich serverseitig per GitHub Action erzeugt und
-    // liegt auf derselben Domain - also kein CORS und kein Proxy noetig.
-    const usedFallback = [];
-    const withFallback = (live, key, label) => {
-        if (live !== null && live !== undefined) return live;
-        const cached = fredData[key];
-        if (cached === null || cached === undefined) return null;
-        usedFallback.push(label);
-        return cached;
-    };
-
-    const vix      = withFallback(vixResult, 'vix', 'VIX');
-    const fng      = withFallback(fngResult, 'fng', 'F&G');
-    const treasury = withFallback(treasuryResult, 'treasury', 'Treasury');
-    const price    = withFallback(ftseResult ? ftseResult.price  : null, 'ftse_price', 'FTSE');
-    const sma200   = withFallback(ftseResult ? ftseResult.sma200 : null, 'sma200', 'SMA200');
-    const sma50    = withFallback(ftseResult ? ftseResult.sma50  : null, 'sma50',  'SMA50');
-
-    if (usedFallback.length) {
-        console.warn('[Fallback] Werte aus data.json statt Live-API:', usedFallback.join(', '));
+    // Welche Werte konnten beim letzten Lauf nicht frisch geladen werden?
+    const stale = [];
+    const times = d.field_times || {};
+    for (const [key, label] of Object.entries(FIELD_LABELS)) {
+        const t = times[key];
+        if (t && (Date.now() - new Date(t).getTime()) > STALE_HOURS * 3600 * 1000) {
+            stale.push(label);
+        }
     }
+    if (stale.length) console.warn('[Dashboard] Veraltete Werte:', stale.join(', '));
 
     return {
-        // Zeitstempel der Daten: bei reinem Fallback der Stand von data.json
-        timestamp:   (usedFallback.length && fredData.timestamp)
-                        ? fredData.timestamp
-                        : new Date().toISOString(),
-        fromCache:   usedFallback,
-        vix:         vix,
-        ftse_price:  price,
-        sma200:      sma200,
-        sma50:       sma50,
-        fng:         fng,
-        treasury:    treasury,
-        buffett:     buffettFRED,       // FRED: WILL5000INDFC / GDP * 100
-        marginDebt:  marginDebtFRED,
-        yieldCurve:  yieldCurveFRED,
-        realRate:    realRateFRED,
-        // Score Engine - 6 neue Felder aus data.json
-        unrate:   fredData.unrate   ?? null,
-        icsa:     fredData.icsa     ?? null,
-        hys:      fredData.hys      ?? null,
-        fedfunds: fredData.fedfunds ?? null,
-        eurusd:   fredData.eurusd   ?? null,
-        umcsent:  fredData.umcsent  ?? null
+        timestamp:  d.timestamp || null,
+        stale:      stale,
+        vix:        d.vix        ?? null,
+        ftse_price: d.ftse_price ?? null,
+        sma200:     d.sma200     ?? null,
+        sma50:      d.sma50      ?? null,
+        fng:        d.fng        ?? null,
+        treasury:   d.treasury   ?? null,
+        buffett:    d.buffett    ?? null,   // FRED: SP500-Proxy / GDP
+        marginDebt: d.margin_debt ?? null,
+        yieldCurve: d.yield_curve ?? null,
+        realRate:   d.real_rate   ?? null,
+        unrate:     d.unrate   ?? null,
+        icsa:       d.icsa     ?? null,
+        hys:        d.hys      ?? null,
+        fedfunds:   d.fedfunds ?? null,
+        eurusd:     d.eurusd   ?? null,
+        umcsent:    d.umcsent  ?? null
     };
 }
 
@@ -1069,12 +842,29 @@ function updateUI() {
 
     // Aktualisierungszeit ganz oben
     if (state.lastUpdated) {
-        const t = state.lastUpdated.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
-        // Kennzeichnen, wenn Werte aus data.json statt aus der Live-API stammen
-        el.updateTime.innerText = state.fromCache.length
-            ? `Stand: ${t} (Cache: ${state.fromCache.join(', ')})`
-            : `Stand: ${t}`;
+        el.updateTime.innerText = formatDataAge(state.lastUpdated, state.stale);
     }
+}
+
+// Kopfzeile: Wann wurden die Daten zuletzt auf dem Server geholt?
+// z.B. "Stand: 15:17 · vor 24 Min."  oder  "Stand: 03.11. 08:36 · vor 7 Std. ⚠"
+function formatDataAge(ts, stale) {
+    const ageMin = Math.max(0, Math.round((Date.now() - ts.getTime()) / 60000));
+    const isToday = ts.toDateString() === new Date().toDateString();
+    const time = ts.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+    const date = ts.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' }) + '. ';
+    const ago = ageMin < 60 ? `vor ${ageMin} Min.`
+              : ageMin < 48 * 60 ? `vor ${Math.round(ageMin / 60)} Std.`
+              : `vor ${Math.round(ageMin / 1440)} Tagen`;
+    let text = `Stand: ${isToday ? '' : date}${time} · ${ago}`;
+    // Server-Update laeuft alle 30 Min. - deutlich aelter heisst: Aktion haengt
+    if (ageMin > 3 * 60) text += ' ⚠ Server-Update überfällig';
+    if (stale && stale.length) {
+        text += stale.length <= 3
+            ? ` · veraltet: ${stale.join(', ')}`
+            : ` · ${stale.length} Werte veraltet`;
+    }
+    return text;
 }
 
 // ── Push-Benachrichtigung (Unverändert) ──────────────────────
@@ -1102,10 +892,21 @@ function checkNotificationPermission() {
 }
 
 // ── STARTPUNKT DER APP ──────────────────────────────────────
+let lastFetchAt = 0;
+let refreshing = false;
+
 async function refreshData() {
-    el.updateTime.innerText = 'Live-Daten laden...';
+    if (refreshing) return;          // keine doppelten Abrufe
+    refreshing = true;
+    lastFetchAt = Date.now();
+    el.updateTime.innerText = 'Daten laden...';
+    let loadError = null;
     try {
         const d = await loadData();
+
+        // Frisch anfangen: Was diesmal fehlt, soll als Fehler sichtbar
+        // werden und nicht still den Wert vom letzten Abruf behalten.
+        state = JSON.parse(JSON.stringify(EMPTY_STATE));
 
         // Befülle unseren State
         if (d.vix != null) {
@@ -1144,17 +945,25 @@ async function refreshData() {
         if (d.umcsent  != null)    { state.umcsent.value     = d.umcsent; }
         // Score berechnen
         calculateCompositeScore();
-        state.fromCache = d.fromCache || [];
+        state.stale = d.stale || [];
         if (d.timestamp) {
             state.lastUpdated = new Date(d.timestamp);
         }
     } catch (e) {
+        // z.B. kein Netz: letzte angezeigte Werte bleiben stehen, werden aber
+        // in der Kopfzeile klar als alter Stand gekennzeichnet.
         console.error('Fehler beim Laden:', e);
-        el.updateTime.innerText = 'API-Fehler – Neuladen...';
+        loadError = e;
     }
-    
+
     // UI neu zeichnen und Effekte abspielen
     updateUI();
+    if (loadError) {
+        el.updateTime.innerText = state.lastUpdated
+            ? '⚠ Laden fehlgeschlagen · zeige ' + formatDataAge(state.lastUpdated, state.stale)
+            : '⚠ Laden fehlgeschlagen – bitte später erneut öffnen';
+    }
+    refreshing = false;
 }
 
 // PWA Setup und Knöpfe aktivieren
@@ -1207,9 +1016,26 @@ function init() {
     }
 
     refreshData(); // Direkt am Anfang 1x laden
-    
-    // Danach heimlich alle 60 Minuten erneuern
-    setInterval(refreshData, 60 * 60 * 1000);
+
+    // Danach alle 10 Minuten erneuern (nur data.json, kostet fast nichts)
+    setInterval(refreshData, 10 * 60 * 1000);
+
+    // Handy/PWA: Beim Zurueckwechseln in die App sofort neu laden, wenn der
+    // letzte Abruf ueber 2 Minuten her ist. Sonst zeigt die App nach dem
+    // Oeffnen aus dem Hintergrund den Stand von vor Stunden.
+    const refreshIfOld = () => {
+        if (!document.hidden && Date.now() - lastFetchAt > 2 * 60 * 1000) refreshData();
+    };
+    document.addEventListener('visibilitychange', refreshIfOld);
+    window.addEventListener('pageshow', e => { if (e.persisted) refreshIfOld(); });
+    window.addEventListener('focus', refreshIfOld);
+
+    // Kopfzeile ("vor X Min.") jede Minute auffrischen
+    setInterval(() => {
+        if (state.lastUpdated && !refreshing && !el.updateTime.innerText.startsWith('⚠ Laden')) {
+            el.updateTime.innerText = formatDataAge(state.lastUpdated, state.stale);
+        }
+    }, 60 * 1000);
 }
 
 // Service Worker anwerfen für echten App-Support
